@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prototipo Taller - Inventario y Proyectos</title>
-    <!-- Tailwind CSS para diseño minimalista y limpio (Req No Funcional 4) -->
+    <title>¿Hay materiales ? - Sistema de Taller</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- React y ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -12,7 +12,7 @@
     <!-- Babel para compilar JSX en tiempo real -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-emerald-50/50 font-sans">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -25,13 +25,38 @@
             const [errorMessage, setErrorMessage] = React.useState('');
             const [welcomeMessage, setWelcomeMessage] = React.useState('');
             
-            // Estado del Menú Principal (CU-02)
+            // Navegación de Módulos
             const [activeModule, setActiveModule] = React.useState('menu');
+
+            // Inventario Global (CU-04 al CU-13)
+            const [inventory, setInventory] = React.useState([
+                { id: 1, categoria: 'Herramienta', nombre: 'Taladro Percutor', ubicacion: 'Estante A-1', cantidad: 4 },
+                { id: 2, categoria: 'Material', nombre: 'Tornillos de Madera 2"', ubicacion: 'Caja B-3', cantidad: 150 },
+                { id: 3, categoria: 'Herramienta', nombre: 'Sierra Circular', ubicacion: 'Estante A-2', cantidad: 2 },
+                { id: 4, categoria: 'Material', nombre: 'Pegamento de Contacto', ubicacion: 'Estante C-1', cantidad: 8 }
+            ]);
+            
+            // Estados del Módulo de Almacenamiento
+            const [showAddModal, setShowAddModal] = React.useState(false);
+            const [newCategory, setNewCategory] = React.useState('Herramienta');
+            const [newName, setNewName] = React.useState('');
+            const [newLocation, setNewLocation] = React.useState('');
+            const [newQuantity, setNewQuantity] = React.useState('');
+            const [searchTerm, setSearchTerm] = React.useState('');
+            const [filterCategory, setFilterCategory] = React.useState('Todos');
+
+            // Estados del Módulo de Listas de Materiales (CU-14 al CU-18)
+            const [lists, setLists] = React.useState([
+                { id: 1, nombre: 'Kit Mantenimiento General', items: [ { id: 1, nombre: 'Taladro Percutor', cantidadNecesaria: 1 } ] }
+            ]);
+            const [newListName, setNewListName] = React.useState('');
+            const [showAddListModal, setShowAddListModal] = React.useState(false);
+            const [selectedList, setSelectedList] = React.useState(null); // Para ver detalles de una lista
+            const [itemToAddId, setItemToAddId] = React.useState('');
 
             // Manejo de Inicio de Sesión (CU-01)
             const handleLogin = (e) => {
                 e.preventDefault();
-                // Credenciales de prueba estándar
                 if (username === 'admin' && password === '12345') {
                     setIsLoggedIn(true);
                     setWelcomeMessage(`¡Bienvenido al sistema, ${username.toUpperCase()}!`);
@@ -50,154 +75,402 @@
                     setUsername('');
                     setPassword('');
                     setActiveModule('menu');
+                    setSelectedList(null);
                 }
             };
 
-            // Pantalla de Login (CU-01, CU-03)
+            // Funciones de Almacenamiento
+            const handleAddItem = (e) => {
+                e.preventDefault();
+                if (!newName || !newLocation || newQuantity === '' || newQuantity < 0) {
+                    alert('Complete todos los campos correctamente y verifique que la cantidad no sea negativa.');
+                    return;
+                }
+                const newItem = { id: Date.now(), categoria: newCategory, nombre: newName, ubicacion: newLocation, cantidad: Number(newQuantity) };
+                setInventory([newItem, ...inventory]);
+                setNewName(''); setNewLocation(''); setNewQuantity(''); setShowAddModal(false);
+            };
+
+            const handleDeleteItem = (id, name) => {
+                if (window.confirm(`¿Remover permanentemente "${name}" del inventario?`)) {
+                    setInventory(inventory.filter(item => item.id !== id));
+                }
+            };
+
+            const filteredInventory = inventory.filter(item => {
+                const matchesSearch = item.nombre.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesCategory = filterCategory === 'Todos' || item.categoria === filterCategory;
+                return matchesSearch && matchesCategory;
+            });
+
+            // Funciones de Listas de Materiales (CU-14 al CU-18)
+            const handleCreateList = (e) => {
+                e.preventDefault();
+                if (!newListName.trim()) return;
+                
+                // Validar unicidad del nombre (CU-14, E1)
+                const exists = lists.some(l => l.nombre.toLowerCase() === newListName.trim().toLowerCase());
+                if (exists) {
+                    alert('Ya existe una lista con ese nombre. Por favor elija un nombre único.');
+                    return;
+                }
+
+                const newList = { id: Date.now(), nombre: newListName.trim(), items: [] };
+                setLists([...lists, newList]);
+                setNewListName('');
+                setShowAddListModal(false);
+            };
+
+            const handleDeleteList = (id, name) => {
+                if (window.confirm(`¿Está seguro de borrar permanentemente la lista "${name}"?`)) {
+                    setLists(lists.filter(l => l.id !== id));
+                    if (selectedList && selectedList.id === id) setSelectedList(null);
+                }
+            };
+
+            const handleAddTolist = (e) => {
+                e.preventDefault();
+                if (!itemToAddId || !selectedList) return;
+
+                const itemToAdd = inventory.find(i => i.id === Number(itemToAddId));
+                if (!itemToAdd) return;
+
+                // Validar si ya está en la lista (CU-16, E1)
+                const alreadyExists = selectedList.items.some(i => i.id === itemToAdd.id);
+                if (alreadyExists) {
+                    alert('Este ítem ya se encuentra agregado en esta lista.');
+                    return;
+                }
+
+                const updatedItems = [...selectedList.items, { id: itemToAdd.id, nombre: itemToAdd.nombre }];
+                const updatedLists = lists.map(l => l.id === selectedList.id ? { ...l, items: updatedItems } : l);
+                
+                setLists(updatedLists);
+                setSelectedList({ ...selectedList, items: updatedItems });
+                setItemToAddId('');
+            };
+
+            const handleRemoveFromList = (itemId) => {
+                const updatedItems = selectedList.items.filter(i => i.id !== itemId);
+                const updatedLists = lists.map(l => l.id === selectedList.id ? { ...l, items: updatedItems } : l);
+                
+                setLists(updatedLists);
+                setSelectedList({ ...selectedList, items: updatedItems });
+            };
+
+            // Pantalla de Login
             if (!isLoggedIn) {
                 return (
-                    <div className="min-h-screen flex items-center justify-center bg-slate-900 px-4">
-                        <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
+                    <div className="min-h-screen flex items-center justify-center bg-emerald-50 px-4">
+                        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-emerald-100 p-8">
                             <div className="text-center mb-8">
-                                <h1 className="text-2xl font-bold text-slate-800">Control de Taller</h1>
-                                <p className="text-sm text-slate-500 mt-1">Ingrese sus credenciales para acceder</p>
+                                <div className="inline-block p-3 bg-emerald-100 text-emerald-700 rounded-full text-2xl mb-3 shadow-inner">🛠️</div>
+                                <h1 className="text-3xl font-extrabold text-emerald-900 tracking-tight">¿Hay materiales ?</h1>
+                                <p className="text-sm text-emerald-600 mt-1 font-medium">Sistema de control de inventario y proyectos</p>
                             </div>
 
                             {errorMessage && (
-                                <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded">
-                                    {errorMessage}
-                                </div>
+                                <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded-lg">{errorMessage}</div>
                             )}
 
-                            <form onSubmit={handleLogin} className="space-y-6">
+                            <form onSubmit={handleLogin} className="space-y-5">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Usuario</label>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Usuario</label>
                                     <input 
                                         type="text" 
-                                        value={username}
-                                        onChange={(e) => setUsername(e.target.value)}
-                                        required
-                                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Ej. admin"
+                                        value={username} 
+                                        onChange={(e) => setUsername(e.target.value)} 
+                                        required 
+                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+                                        placeholder="Ej. admin" 
                                     />
                                 </div>
-
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Contraseña</label>
                                     <div className="relative">
                                         <input 
                                             type={showPassword ? "text" : "password"} 
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            required
-                                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
-                                            placeholder="••••••"
+                                            value={password} 
+                                            onChange={(e) => setPassword(e.target.value)} 
+                                            required 
+                                            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 pr-12" 
+                                            placeholder="••••••" 
                                         />
                                         <button 
-                                            type="button"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute inset-y-0 right-0 px-3 flex items-center text-slate-500 hover:text-slate-700 text-sm font-medium"
+                                            type="button" 
+                                            onClick={() => setShowPassword(!showPassword)} 
+                                            className="absolute inset-y-0 right-0 px-3.5 flex items-center text-xs font-semibold text-emerald-700 hover:text-emerald-900"
                                         >
                                             {showPassword ? "Ocultar" : "Ver"}
                                         </button>
                                     </div>
                                 </div>
-
-                                <button 
-                                    type="submit"
-                                    className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition duration-200 shadow-md"
-                                >
-                                    Iniciar Sesión
-                                </button>
+                                <button type="submit" className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg shadow-emerald-600/20">Iniciar Sesión</button>
                             </form>
-                            <div className="mt-6 text-center text-xs text-slate-400">
-                                Credenciales de prueba por defecto: usuario: <b>admin</b> / contraseña: <b>12345</b>
-                            </div>
+                            <div className="mt-6 text-center text-xs text-slate-400">Acceso de prueba: <b>admin</b> / <b>12345</b></div>
                         </div>
                     </div>
                 );
             }
 
-            // Menú Principal y Navegación
+            // Estructura Principal y Módulos
             return (
-                <div className="min-h-screen bg-slate-100 flex flex-col">
-                    {/* Barra Superior / Header */}
-                    <header className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
+                <div className="min-h-screen bg-emerald-50/50 flex flex-col">
+                    <header className="bg-white shadow-sm border-b border-emerald-100 px-6 py-4 flex justify-between items-center">
                         <div>
-                            <h2 className="text-xl font-bold text-slate-800">Sistema de Gestión de Taller</h2>
+                            <h2 className="text-xl font-extrabold text-emerald-900 tracking-tight">¿Hay materiales ?</h2>
                             <p className="text-xs text-emerald-600 font-medium">{welcomeMessage}</p>
                         </div>
-                        <button 
-                            onClick={handleLogout}
-                            className="bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-lg text-sm font-semibold transition"
-                        >
-                            Cerrar Sesión (CU-02)
-                        </button>
+                        <button onClick={handleLogout} className="bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-xl text-sm font-semibold transition">Cerrar Sesión</button>
                     </header>
 
-                    {/* Contenido Principal */}
-                    <main className="flex-1 max-w-6xl w-full mx-auto p-6">
+                    <main className="flex-1 max-w-4xl w-full mx-auto p-6 flex flex-col justify-center">
+                        
+                        {/* Menú Principal Vertical */}
                         {activeModule === 'menu' && (
-                            <div>
-                                <h3 className="text-lg font-semibold text-slate-700 mb-6">Menú Principal</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div 
-                                        onClick={() => setActiveModule('almacenamiento')}
-                                        className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer flex flex-col items-center text-center"
-                                    >
-                                        <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xl font-bold mb-4">📦</div>
-                                        <h4 className="text-lg font-semibold text-slate-800">Almacenamiento</h4>
-                                        <p className="text-sm text-slate-500 mt-2">Gestionar herramientas, materiales, inventario y stock.</p>
+                            <div className="bg-white rounded-2xl shadow-sm border border-emerald-100 p-8">
+                                <h3 className="text-xl font-bold text-slate-800 mb-6 text-center">Menú Principal</h3>
+                                <div className="flex flex-col space-y-4">
+                                    <div onClick={() => setActiveModule('almacenamiento')} className="flex items-center p-4 bg-emerald-50/50 hover:bg-emerald-100/60 border border-emerald-200/60 rounded-xl transition cursor-pointer group shadow-sm">
+                                        <div className="w-12 h-12 bg-emerald-600 text-white rounded-xl flex items-center justify-center text-xl font-bold mr-4 shadow-sm group-hover:scale-105 transition">📦</div>
+                                        <div className="flex-1">
+                                            <h4 className="text-base font-bold text-slate-800">Almacenamiento (Inventario)</h4>
+                                            <p className="text-xs text-slate-500">Gestionar herramientas, materiales y stock actual.</p>
+                                        </div>
+                                        <span className="text-emerald-600 font-bold text-lg px-2">→</span>
                                     </div>
 
-                                    <div 
-                                        onClick={() => setActiveModule('listas')}
-                                        className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer flex flex-col items-center text-center"
-                                    >
-                                        <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xl font-bold mb-4">📋</div>
-                                        <h4 className="text-lg font-semibold text-slate-800">Listas de Materiales</h4>
-                                        <p className="text-sm text-slate-500 mt-2">Crear listas de verificación y asignar ítems del inventario.</p>
+                                    <div onClick={() => setActiveModule('listas')} className="flex items-center p-4 bg-emerald-50/50 hover:bg-emerald-100/60 border border-emerald-200/60 rounded-xl transition cursor-pointer group shadow-sm">
+                                        <div className="w-12 h-12 bg-emerald-600 text-white rounded-xl flex items-center justify-center text-xl font-bold mr-4 shadow-sm group-hover:scale-105 transition">📋</div>
+                                        <div className="flex-1">
+                                            <h4 className="text-base font-bold text-slate-800">Listas de Materiales</h4>
+                                            <p className="text-xs text-slate-500">Crear listas de verificación y asignar ítems.</p>
+                                        </div>
+                                        <span className="text-emerald-600 font-bold text-lg px-2">→</span>
                                     </div>
 
-                                    <div 
-                                        onClick={() => setActiveModule('proyectos')}
-                                        className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer flex flex-col items-center text-center"
-                                    >
-                                        <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-xl font-bold mb-4">📊</div>
-                                        <h4 className="text-lg font-semibold text-slate-800">Proyectos</h4>
-                                        <p className="text-sm text-slate-500 mt-2">Administrar proyectos en curso, pendientes, finalizados y progreso.</p>
+                                    <div onClick={() => setActiveModule('proyectos')} className="flex items-center p-4 bg-emerald-50/50 hover:bg-emerald-100/60 border border-emerald-200/60 rounded-xl transition cursor-pointer group shadow-sm">
+                                        <div className="w-12 h-12 bg-emerald-600 text-white rounded-xl flex items-center justify-center text-xl font-bold mr-4 shadow-sm group-hover:scale-105 transition">📊</div>
+                                        <div className="flex-1">
+                                            <h4 className="text-base font-bold text-slate-800">Proyectos</h4>
+                                            <p className="text-xs text-slate-500">Administrar proyectos en curso, pendientes y progreso.</p>
+                                        </div>
+                                        <span className="text-emerald-600 font-bold text-lg px-2">→</span>
                                     </div>
                                 </div>
                             </div>
                         )}
 
+                        {/* MÓDULO DE ALMACENAMIENTO */}
                         {activeModule === 'almacenamiento' && (
-                            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-lg font-semibold text-slate-800">Módulo de Almacenamiento (Inventario)</h3>
-                                    <button onClick={() => setActiveModule('menu')} className="text-sm text-blue-600 hover:underline">← Volver al Menú</button>
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100 w-full">
+                                <div className="flex justify-between items-center mb-6">
+                                    <div>
+                                        <h3 className="text-xl font-bold text-slate-800">Almacenamiento e Inventario</h3>
+                                        <p className="text-xs text-slate-500">Gestión de herramientas y materiales del taller</p>
+                                    </div>
+                                    <button onClick={() => setActiveModule('menu')} className="text-sm text-emerald-600 font-semibold hover:underline">← Volver al Menú</button>
                                 </div>
-                                <p className="text-slate-500 text-sm">Aquí construiremos próximamente el registro, edición, filtrado y eliminación de herramientas y materiales (CU-04 al CU-13).</p>
+
+                                <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Buscar por nombre..." 
+                                        value={searchTerm} 
+                                        onChange={(e) => setSearchTerm(e.target.value)} 
+                                        className="w-full md:w-1/3 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+                                    />
+                                    <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+                                        <select 
+                                            value={filterCategory} 
+                                            onChange={(e) => setFilterCategory(e.target.value)} 
+                                            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                        >
+                                            <option value="Todos">Todas las categorías</option>
+                                            <option value="Herramienta">Solo Herramientas</option>
+                                            <option value="Material">Solo Materiales</option>
+                                        </select>
+                                        <button 
+                                            onClick={() => setShowAddModal(true)} 
+                                            className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20 whitespace-nowrap"
+                                        >
+                                            + Nuevo Ítem
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {showAddModal && (
+                                    <div className="mb-6 p-5 bg-emerald-50/80 border border-emerald-200 rounded-2xl">
+                                        <h4 className="text-sm font-bold text-emerald-900 mb-3">Registrar Nueva Herramienta o Material</h4>
+                                        <form onSubmit={handleAddItem} className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                            <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className="px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white">
+                                                <option value="Herramienta">Herramienta</option>
+                                                <option value="Material">Material</option>
+                                            </select>
+                                            <input type="text" placeholder="Nombre" value={newName} onChange={(e) => setNewName(e.target.value)} required className="px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white" />
+                                            <input type="text" placeholder="Ubicación (Ej. Estante A)" value={newLocation} onChange={(e) => setNewLocation(e.target.value)} required className="px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white" />
+                                            <input type="number" placeholder="Cantidad" min="0" value={newQuantity} onChange={(e) => setNewQuantity(e.target.value)} required className="px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white" />
+                                            <div className="md:col-span-4 flex justify-end gap-2 mt-2">
+                                                <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 bg-gray-200 text-slate-700 rounded-xl text-xs font-semibold">Cancelar</button>
+                                                <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700">Guardar Ítem</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                )}
+
+                                <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="bg-slate-50 text-slate-700 text-xs uppercase font-semibold border-b border-slate-200">
+                                                <th className="p-3">Categoría</th>
+                                                <th className="p-3">Nombre</th>
+                                                <th className="p-3">Ubicación Física</th>
+                                                <th className="p-3">Cantidad</th>
+                                                <th className="p-3 text-center">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 text-sm text-slate-600">
+                                            {filteredInventory.length > 0 ? (
+                                                filteredInventory.map(item => (
+                                                    <tr key={item.id} className="hover:bg-slate-50/50 transition">
+                                                        <td className="p-3">
+                                                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${item.categoria === 'Herramienta' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>{item.categoria}</span>
+                                                        </td>
+                                                        <td className="p-3 font-medium text-slate-800">{item.nombre}</td>
+                                                        <td className="p-3">{item.ubicacion}</td>
+                                                        <td className="p-3 font-bold text-slate-700">{item.cantidad}</td>
+                                                        <td className="p-3 text-center">
+                                                            <button onClick={() => handleDeleteItem(item.id, item.nombre)} className="text-red-500 hover:text-red-700 text-xs font-semibold px-2 py-1 bg-red-50 rounded-lg">Eliminar</button>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                <tr><td colSpan="5" className="p-6 text-center text-slate-400 text-sm">No se encontraron registros.</td></tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         )}
 
+                        {/* MÓDULO DE LISTAS DE MATERIALES (CU-14 al CU-18) */}
                         {activeModule === 'listas' && (
-                            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-lg font-semibold text-slate-800">Módulo de Listas de Materiales</h3>
-                                    <button onClick={() => setActiveModule('menu')} className="text-sm text-blue-600 hover:underline">← Volver al Menú</button>
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100 w-full">
+                                <div className="flex justify-between items-center mb-6">
+                                    <div>
+                                        <h3 className="text-xl font-bold text-slate-800">Listas de Materiales</h3>
+                                        <p className="text-xs text-slate-500">Creación de listas de verificación y asignación de ítems</p>
+                                    </div>
+                                    <button onClick={() => { setActiveModule('menu'); setSelectedList(null); }} className="text-sm text-emerald-600 font-semibold hover:underline">← Volver al Menú</button>
                                 </div>
-                                <p className="text-slate-500 text-sm">Aquí construiremos la creación de listas de verificación y la asociación de ítems (CU-14 al CU-18).</p>
+
+                                {!selectedList ? (
+                                    <div>
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h4 className="text-sm font-bold text-slate-700">Listas Registradas</h4>
+                                            <button onClick={() => setShowAddListModal(true)} className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20">+ Nueva Lista</button>
+                                        </div>
+
+                                        {showAddListModal && (
+                                            <div className="mb-6 p-4 bg-emerald-50/80 border border-emerald-200 rounded-xl">
+                                                <form onSubmit={handleCreateList} className="flex gap-3">
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="Nombre único de la lista (Ej. Proyecto Mueble de Cocina)" 
+                                                        value={newListName} 
+                                                        onChange={(e) => setNewListName(e.target.value)} 
+                                                        required 
+                                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white" 
+                                                    />
+                                                    <button type="button" onClick={() => setShowAddListModal(false)} className="px-4 py-2 bg-gray-200 text-slate-700 rounded-xl text-xs font-semibold">Cancelar</button>
+                                                    <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700">Crear Lista</button>
+                                                </form>
+                                            </div>
+                                        )}
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {lists.length > 0 ? (
+                                                lists.map(list => (
+                                                    <div key={list.id} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 hover:border-emerald-300 transition flex flex-col justify-between">
+                                                        <div>
+                                                            <h5 className="font-bold text-slate-800 text-base">{list.nombre}</h5>
+                                                            <p className="text-xs text-slate-500 mt-1">Ítems asignados: {list.items.length}</p>
+                                                        </div>
+                                                        <div className="flex justify-end gap-2 mt-4">
+                                                            <button onClick={() => setSelectedList(list)} className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700">Ver / Gestionar</button>
+                                                            <button onClick={() => handleDeleteList(list.id, list.nombre)} className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100">Eliminar</button>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p className="col-span-2 text-center text-slate-400 text-sm py-6">No hay listas de materiales creadas.</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    /* Vista de detalle de una lista seleccionada */
+                                    <div>
+                                        <div className="flex justify-between items-center mb-4 bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                                            <div>
+                                                <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Lista Seleccionada</span>
+                                                <h4 className="text-lg font-bold text-emerald-900">{selectedList.nombre}</h4>
+                                            </div>
+                                            <button onClick={() => setSelectedList(null)} className="text-xs font-semibold text-emerald-700 hover:underline">← Volver a Listas</button>
+                                        </div>
+
+                                        {/* Formulario para agregar ítem del inventario a la lista */}
+                                        <form onSubmit={handleAddTolist} className="flex gap-3 mb-6">
+                                            <select 
+                                                value={itemToAddId} 
+                                                onChange={(e) => setItemToAddId(e.target.value)} 
+                                                required 
+                                                className="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-sm bg-slate-50"
+                                            >
+                                                <option value="">-- Seleccionar ítem del inventario para agregar --</option>
+                                                {inventory.map(inv => (
+                                                    <option key={inv.id} value={inv.id}>{inv.categoria}: {inv.nombre} (Stock: {inv.cantidad})</option>
+                                                ))}
+                                            </select>
+                                            <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700">Agregar a Lista</button>
+                                        </form>
+
+                                        {/* Tabla de ítems de la lista */}
+                                        <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="bg-slate-50 text-slate-700 text-xs uppercase font-semibold border-b border-slate-200">
+                                                        <th className="p-3">Nombre del Ítem</th>
+                                                        <th className="p-3 text-center">Acción</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100 text-sm text-slate-600">
+                                                    {selectedList.items.length > 0 ? (
+                                                        selectedList.items.map(i => (
+                                                            <tr key={i.id} className="hover:bg-slate-50/50">
+                                                                <td className="p-3 font-medium text-slate-800">{i.nombre}</td>
+                                                                <td className="p-3 text-center">
+                                                                    <button onClick={() => handleRemoveFromList(i.id)} className="text-red-500 hover:text-red-700 text-xs font-semibold px-2 py-1 bg-red-50 rounded-lg">Quitar</button>
+                                                                </td>
+                                                            </tr>
+                                                        ))
+                                                    ) : (
+                                                        <tr><td colSpan="2" className="p-6 text-center text-slate-400 text-sm">Esta lista aún no tiene ítems asignados.</td></tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 
                         {activeModule === 'proyectos' && (
-                            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100">
                                 <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-lg font-semibold text-slate-800">Módulo de Proyectos</h3>
-                                    <button onClick={() => setActiveModule('menu')} className="text-sm text-blue-600 hover:underline">← Volver al Menú</button>
+                                    <h3 className="text-lg font-bold text-slate-800">Módulo de Proyectos</h3>
+                                    <button onClick={() => setActiveModule('menu')} className="text-sm text-emerald-600 font-semibold hover:underline">← Volver al Menú</button>
                                 </div>
-                                <p className="text-slate-500 text-sm">Aquí construiremos los estados del proyecto, el seguimiento en curso y los reportes (CU-19 al CU-37).</p>
+                                <p className="text-slate-500 text-sm">Próximamente: Estados de proyectos, seguimiento y progreso (CU-19 al CU-37).</p>
                             </div>
                         )}
                     </main>
