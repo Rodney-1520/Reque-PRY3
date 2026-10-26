@@ -36,7 +36,7 @@
                 { id: 4, categoria: 'Material', nombre: 'Pegamento de Contacto', ubicacion: 'Estante C-1', cantidad: 8 }
             ]);
             
-            // Estados del Módulo de Almacenamiento
+            // Estados de Almacenamiento
             const [showAddModal, setShowAddModal] = React.useState(false);
             const [newCategory, setNewCategory] = React.useState('Herramienta');
             const [newName, setNewName] = React.useState('');
@@ -45,14 +45,32 @@
             const [searchTerm, setSearchTerm] = React.useState('');
             const [filterCategory, setFilterCategory] = React.useState('Todos');
 
-            // Estados del Módulo de Listas de Materiales (CU-14 al CU-18)
+            // Listas de Materiales (CU-14 al CU-18)
             const [lists, setLists] = React.useState([
-                { id: 1, nombre: 'Kit Mantenimiento General', items: [ { id: 1, nombre: 'Taladro Percutor', cantidadNecesaria: 1 } ] }
+                { id: 1, nombre: 'Kit Mantenimiento General', items: [ { id: 1, nombre: 'Taladro Percutor' } ] }
             ]);
             const [newListName, setNewListName] = React.useState('');
             const [showAddListModal, setShowAddListModal] = React.useState(false);
-            const [selectedList, setSelectedList] = React.useState(null); // Para ver detalles de una lista
+            const [selectedList, setSelectedList] = React.useState(null);
             const [itemToAddId, setItemToAddId] = React.useState('');
+
+            // Módulo de Proyectos (CU-19 al CU-37, CU-43, CU-47)
+            const [projects, setProjects] = React.useState([
+                { 
+                    id: 1, 
+                    nombre: 'Mueble de Cocina Rústico', 
+                    descripcion: 'Fabricación de alacena principal con madera tratada', 
+                    estado: 'Pendiente', 
+                    listId: 1, 
+                    checkedItems: {} 
+                }
+            ]);
+            const [showAddProjectModal, setShowAddProjectModal] = React.useState(false);
+            const [newProjName, setNewProjName] = React.useState('');
+            const [newProjDesc, setNewProjDesc] = React.useState('');
+            const [newProjStatus, setNewProjStatus] = React.useState('Pendiente');
+            const [newProjListId, setNewProjListId] = React.useState('');
+            const [activeProjectDetail, setActiveProjectDetail] = React.useState(null);
 
             // Manejo de Inicio de Sesión (CU-01)
             const handleLogin = (e) => {
@@ -76,6 +94,7 @@
                     setPassword('');
                     setActiveModule('menu');
                     setSelectedList(null);
+                    setActiveProjectDetail(null);
                 }
             };
 
@@ -103,18 +122,15 @@
                 return matchesSearch && matchesCategory;
             });
 
-            // Funciones de Listas de Materiales (CU-14 al CU-18)
+            // Funciones de Listas de Materiales
             const handleCreateList = (e) => {
                 e.preventDefault();
                 if (!newListName.trim()) return;
-                
-                // Validar unicidad del nombre (CU-14, E1)
                 const exists = lists.some(l => l.nombre.toLowerCase() === newListName.trim().toLowerCase());
                 if (exists) {
-                    alert('Ya existe una lista con ese nombre. Por favor elija un nombre único.');
+                    alert('Ya existe una lista con ese nombre.');
                     return;
                 }
-
                 const newList = { id: Date.now(), nombre: newListName.trim(), items: [] };
                 setLists([...lists, newList]);
                 setNewListName('');
@@ -122,7 +138,7 @@
             };
 
             const handleDeleteList = (id, name) => {
-                if (window.confirm(`¿Está seguro de borrar permanentemente la lista "${name}"?`)) {
+                if (window.confirm(`¿Borrar permanentemente la lista "${name}"?`)) {
                     setLists(lists.filter(l => l.id !== id));
                     if (selectedList && selectedList.id === id) setSelectedList(null);
                 }
@@ -131,20 +147,15 @@
             const handleAddTolist = (e) => {
                 e.preventDefault();
                 if (!itemToAddId || !selectedList) return;
-
                 const itemToAdd = inventory.find(i => i.id === Number(itemToAddId));
                 if (!itemToAdd) return;
-
-                // Validar si ya está en la lista (CU-16, E1)
                 const alreadyExists = selectedList.items.some(i => i.id === itemToAdd.id);
                 if (alreadyExists) {
-                    alert('Este ítem ya se encuentra agregado en esta lista.');
+                    alert('Este ítem ya se encuentra en la lista.');
                     return;
                 }
-
                 const updatedItems = [...selectedList.items, { id: itemToAdd.id, nombre: itemToAdd.nombre }];
                 const updatedLists = lists.map(l => l.id === selectedList.id ? { ...l, items: updatedItems } : l);
-                
                 setLists(updatedLists);
                 setSelectedList({ ...selectedList, items: updatedItems });
                 setItemToAddId('');
@@ -153,9 +164,96 @@
             const handleRemoveFromList = (itemId) => {
                 const updatedItems = selectedList.items.filter(i => i.id !== itemId);
                 const updatedLists = lists.map(l => l.id === selectedList.id ? { ...l, items: updatedItems } : l);
-                
                 setLists(updatedLists);
                 setSelectedList({ ...selectedList, items: updatedItems });
+            };
+
+            // Funciones de Proyectos (CU-19 al CU-37, CU-43, CU-47)
+            const handleCreateProject = (e) => {
+                e.preventDefault();
+                if (!newProjName.trim() || !newProjDesc.trim()) {
+                    alert('Complete todos los campos del proyecto.');
+                    return;
+                }
+
+                // Validar unicidad de proyecto "En Curso" (CU-19 E2, CU-25 E1)
+                if (newProjStatus === 'En Curso') {
+                    const activeExists = projects.some(p => p.estado === 'En Curso');
+                    if (activeExists) {
+                        alert('Ya existe un proyecto "En Curso". Solo puede haber un proyecto activo simultáneamente.');
+                        return;
+                    }
+                }
+
+                const newProj = {
+                    id: Date.now(),
+                    nombre: newProjName.trim(),
+                    descripcion: newProjDesc.trim(),
+                    estado: newProjStatus,
+                    listId: newProjListId ? Number(newProjListId) : null,
+                    checkedItems: {}
+                };
+
+                setProjects([newProj, ...projects]);
+                setNewProjName('');
+                setNewProjDesc('');
+                setNewProjStatus('Pendiente');
+                setNewProjListId('');
+                setShowAddProjectModal(false);
+            };
+
+            const handleStatusChange = (projId, newStatus) => {
+                if (newStatus === 'En Curso') {
+                    const activeExists = projects.some(p => p.estado === 'En Curso' && p.id !== projId);
+                    if (activeExists) {
+                        alert('Ya hay otro proyecto en curso. Debe cambiar su estado antes de activar este.');
+                        return;
+                    }
+                }
+                setProjects(projects.map(p => p.id === projId ? { ...p, estado: newStatus } : p));
+                if (activeProjectDetail && activeProjectDetail.id === projId) {
+                    setActiveProjectDetail({ ...activeProjectDetail, estado: newStatus });
+                }
+            };
+
+            const handleDeleteProject = (projId, projName) => {
+                if (window.confirm(`¿Eliminar permanentemente el proyecto "${projName}"?`)) {
+                    setProjects(projects.filter(p => p.id !== projId));
+                    if (activeProjectDetail && activeProjectDetail.id === projId) setActiveProjectDetail(null);
+                }
+            };
+
+            const handleDuplicateProject = (proj) => {
+                const duplicated = {
+                    ...proj,
+                    id: Date.now(),
+                    nombre: `${proj.nombre} (Copia)`,
+                    estado: 'Pendiente',
+                    checkedItems: {}
+                };
+                setProjects([duplicated, ...projects]);
+                alert('Proyecto duplicado exitosamente con estado "Pendiente".');
+            };
+
+            const handleToggleCheckItem = (itemId) => {
+                if (!activeProjectDetail) return;
+                const currentChecked = activeProjectDetail.checkedItems || {};
+                const updatedChecked = { ...currentChecked, [itemId]: !currentChecked[itemId] };
+                
+                const updatedProj = { ...activeProjectDetail, checkedItems: updatedChecked };
+                setActiveProjectDetail(updatedProj);
+                setProjects(projects.map(p => p.id === updatedProj.id ? updatedProj : p));
+            };
+
+            // Cálculo de progreso (CU-43)
+            const calculateProgress = (proj) => {
+                if (!proj.listId) return 0;
+                const list = lists.find(l => l.id === proj.listId);
+                if (!list || list.items.length === 0) return 0;
+                
+                const total = list.items.length;
+                const checkedCount = list.items.filter(i => proj.checkedItems && proj.checkedItems[i.id]).length;
+                return Math.round((checkedCount / total) * 100);
             };
 
             // Pantalla de Login
@@ -353,7 +451,7 @@
                             </div>
                         )}
 
-                        {/* MÓDULO DE LISTAS DE MATERIALES (CU-14 al CU-18) */}
+                        {/* MÓDULO DE LISTAS DE MATERIALES */}
                         {activeModule === 'listas' && (
                             <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100 w-full">
                                 <div className="flex justify-between items-center mb-6">
@@ -408,7 +506,6 @@
                                         </div>
                                     </div>
                                 ) : (
-                                    /* Vista de detalle de una lista seleccionada */
                                     <div>
                                         <div className="flex justify-between items-center mb-4 bg-emerald-50 p-4 rounded-xl border border-emerald-100">
                                             <div>
@@ -418,7 +515,6 @@
                                             <button onClick={() => setSelectedList(null)} className="text-xs font-semibold text-emerald-700 hover:underline">← Volver a Listas</button>
                                         </div>
 
-                                        {/* Formulario para agregar ítem del inventario a la lista */}
                                         <form onSubmit={handleAddTolist} className="flex gap-3 mb-6">
                                             <select 
                                                 value={itemToAddId} 
@@ -434,7 +530,6 @@
                                             <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700">Agregar a Lista</button>
                                         </form>
 
-                                        {/* Tabla de ítems de la lista */}
                                         <div className="overflow-x-auto border border-slate-200 rounded-xl">
                                             <table className="w-full text-left border-collapse">
                                                 <thead>
@@ -464,13 +559,182 @@
                             </div>
                         )}
 
+                        {/* MÓDULO DE PROYECTOS (CU-19 al CU-37, CU-43, CU-47) */}
                         {activeModule === 'proyectos' && (
-                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-lg font-bold text-slate-800">Módulo de Proyectos</h3>
-                                    <button onClick={() => setActiveModule('menu')} className="text-sm text-emerald-600 font-semibold hover:underline">← Volver al Menú</button>
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100 w-full">
+                                <div className="flex justify-between items-center mb-6">
+                                    <div>
+                                        <h3 className="text-xl font-bold text-slate-800">Módulo de Proyectos</h3>
+                                        <p className="text-xs text-slate-500">Gestión de proyectos en curso, pendientes, finalizados y progreso</p>
+                                    </div>
+                                    <button onClick={() => { setActiveModule('menu'); setActiveProjectDetail(null); }} className="text-sm text-emerald-600 font-semibold hover:underline">← Volver al Menú</button>
                                 </div>
-                                <p className="text-slate-500 text-sm">Próximamente: Estados de proyectos, seguimiento y progreso (CU-19 al CU-37).</p>
+
+                                {!activeProjectDetail ? (
+                                    <div>
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h4 className="text-sm font-bold text-slate-700">Proyectos Registrados</h4>
+                                            <button onClick={() => setShowAddProjectModal(true)} className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20">+ Nuevo Proyecto</button>
+                                        </div>
+
+                                        {showAddProjectModal && (
+                                            <div className="mb-6 p-4 bg-emerald-50/80 border border-emerald-200 rounded-xl">
+                                                <form onSubmit={handleCreateProject} className="space-y-3">
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="Nombre del proyecto" 
+                                                        value={newProjName} 
+                                                        onChange={(e) => setNewProjName(e.target.value)} 
+                                                        required 
+                                                        className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white" 
+                                                    />
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="Descripción del proyecto" 
+                                                        value={newProjDesc} 
+                                                        onChange={(e) => setNewProjDesc(e.target.value)} 
+                                                        required 
+                                                        className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white" 
+                                                    />
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        <select 
+                                                            value={newProjStatus} 
+                                                            onChange={(e) => setNewProjStatus(e.target.value)} 
+                                                            className="px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white"
+                                                        >
+                                                            <option value="Pendiente">Pendiente</option>
+                                                            <option value="En Curso">En Curso</option>
+                                                            <option value="Finalizado">Finalizado</option>
+                                                        </select>
+                                                        <select 
+                                                            value={newProjListId} 
+                                                            onChange={(e) => setNewProjListId(e.target.value)} 
+                                                            className="px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white"
+                                                        >
+                                                            <option value="">-- Asociar Lista de Materiales (Opcional) --</option>
+                                                            {lists.map(l => (
+                                                                <option key={l.id} value={l.id}>{l.nombre}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div className="flex justify-end gap-2 mt-2">
+                                                        <button type="button" onClick={() => setShowAddProjectModal(false)} className="px-4 py-2 bg-gray-200 text-slate-700 rounded-xl text-xs font-semibold">Cancelar</button>
+                                                        <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700">Guardar Proyecto</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        )}
+
+                                        <div className="space-y-4">
+                                            {projects.length > 0 ? (
+                                                projects.map(proj => {
+                                                    const progress = calculateProgress(proj);
+                                                    return (
+                                                        <div key={proj.id} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 hover:border-emerald-300 transition flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <h5 className="font-bold text-slate-800 text-base">{proj.nombre}</h5>
+                                                                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${proj.estado === 'En Curso' ? 'bg-amber-100 text-amber-800' : proj.estado === 'Finalizado' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'}`}>
+                                                                        {proj.estado}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-xs text-slate-500 mt-1">{proj.descripcion}</p>
+                                                                {proj.listId && (
+                                                                    <div className="mt-2 w-full max-w-xs bg-slate-200 rounded-full h-2">
+                                                                        <div className="bg-emerald-600 h-2 rounded-full" style={{ width: `${progress}%` }}></div>
+                                                                        <span className="text-[10px] text-slate-500 font-semibold mt-0.5 block">Progreso: {progress}%</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <select 
+                                                                    value={proj.estado} 
+                                                                    onChange={(e) => handleStatusChange(proj.id, e.target.value)}
+                                                                    className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700"
+                                                                >
+                                                                    <option value="Pendiente">Pendiente</option>
+                                                                    <option value="En Curso">En Curso</option>
+                                                                    <option value="Finalizado">Finalizado</option>
+                                                                </select>
+
+                                                                {proj.listId && (
+                                                                    <button onClick={() => setActiveProjectDetail(proj)} className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700">Ver Lista</button>
+                                                                )}
+
+                                                                <button onClick={() => handleDuplicateProject(proj)} className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-semibold hover:bg-blue-100">Duplicar</button>
+                                                                <button onClick={() => handleDeleteProject(proj.id, proj.nombre)} className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100">Eliminar</button>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
+                                            ) : (
+                                                <p className="text-center text-slate-400 text-sm py-6">No hay proyectos registrados.</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    /* Vista de Seguimiento y Progreso del Proyecto */
+                                    <div>
+                                        <div className="flex justify-between items-center mb-4 bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                                            <div>
+                                                <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Proyecto Activo / Seguimiento</span>
+                                                <h4 className="text-lg font-bold text-emerald-900">{activeProjectDetail.nombre}</h4>
+                                                <p className="text-xs text-slate-500 mt-0.5">{activeProjectDetail.descripcion}</p>
+                                            </div>
+                                            <button onClick={() => setActiveProjectDetail(null)} className="text-xs font-semibold text-emerald-700 hover:underline">← Volver a Proyectos</button>
+                                        </div>
+
+                                        {(() => {
+                                            const list = lists.find(l => l.id === activeProjectDetail.listId);
+                                            const progress = calculateProgress(activeProjectDetail);
+                                            return (
+                                                <div>
+                                                    <div className="mb-6 bg-white p-4 border border-slate-200 rounded-xl">
+                                                        <div className="flex justify-between text-sm font-bold text-slate-700 mb-1">
+                                                            <span>Progreso de Verificación</span>
+                                                            <span>{progress}%</span>
+                                                        </div>
+                                                        <div className="w-full bg-slate-200 rounded-full h-3">
+                                                            <div className="bg-emerald-600 h-3 rounded-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
+                                                        </div>
+                                                    </div>
+
+                                                    <h5 className="font-bold text-slate-700 text-sm mb-3">Checklist de Materiales y Herramientas (CU-29, CU-30)</h5>
+                                                    <div className="space-y-2">
+                                                        {list && list.items.length > 0 ? (
+                                                            list.items.map(item => {
+                                                                const isChecked = activeProjectDetail.checkedItems && activeProjectDetail.checkedItems[item.id];
+                                                                return (
+                                                                    <div 
+                                                                        key={item.id} 
+                                                                        onClick={() => handleToggleCheckItem(item.id)}
+                                                                        className={`p-3 border rounded-xl flex items-center justify-between cursor-pointer transition ${isChecked ? 'bg-emerald-50/60 border-emerald-300 text-emerald-900' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'}`}
+                                                                    >
+                                                                        <div className="flex items-center gap-3">
+                                                                            <input 
+                                                                                type="checkbox" 
+                                                                                checked={!!isChecked} 
+                                                                                onChange={() => {}} 
+                                                                                className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer" 
+                                                                            />
+                                                                            <span className={`text-sm font-medium ${isChecked ? 'line-through text-slate-400' : ''}`}>{item.nombre}</span>
+                                                                        </div>
+                                                                        <span className={`text-xs font-semibold px-2 py-0.5 rounded ${isChecked ? 'bg-emerald-200 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
+                                                                            {isChecked ? 'Verificado' : 'Pendiente'}
+                                                                        </span>
+                                                                    </div>
+                                                                );
+                                                            })
+                                                        ) : (
+                                                            <p className="text-center text-slate-400 text-sm py-6">La lista asociada a este proyecto no tiene ítems.</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </main>
