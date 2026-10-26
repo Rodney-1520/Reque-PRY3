@@ -73,23 +73,25 @@
             const [newProjListId, setNewProjListId] = React.useState('');
             const [activeProjectDetail, setActiveProjectDetail] = React.useState(null);
 
-            // Manejo de Inicio de Sesión con validación de roles (CU-01)
+            // Manejo de Inicio de Sesión con validación de roles robusta (CU-01)
             const handleLogin = (e) => {
                 e.preventDefault();
-                if (username === 'admin' && password === '12345') {
+                const cleanUser = username.trim().toLowerCase();
+                
+                if (cleanUser === 'admin' && password === '12345') {
                     setIsLoggedIn(true);
                     setUserRole('Administrador');
-                    setWelcomeMessage(`¡Bienvenido, Administrador ${username.toUpperCase()}!`);
+                    setWelcomeMessage(`¡Bienvenido, Administrador ${username} !`);
                     setErrorMessage('');
                     setActiveModule('menu');
-                } else if (username === 'trabajador' && password === '12345') {
+                } else if (cleanUser === 'trabajador' && password === '12345') {
                     setIsLoggedIn(true);
                     setUserRole('Trabajador');
-                    setWelcomeMessage(`¡Bienvenido, Trabajador ${username.toUpperCase()}!`);
+                    setWelcomeMessage(`¡Bienvenido, Trabajador ${username} !`);
                     setErrorMessage('');
                     setActiveModule('menu');
                 } else {
-                    setErrorMessage('Credenciales incorrectas. Pruebe admin / 12345 o trabajador / 12345.');
+                    setErrorMessage('Credenciales incorrectas. Verifique usuario y contraseña.');
                     setPassword('');
                 }
             };
