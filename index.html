@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prototipo Taller - Inventario y Proyectos</title>
-    <!-- Tailwind CSS para diseño minimalista y limpio (Req No Funcional 4) -->
+    <title>¿Hay materiales ? - Inicio de Sesión</title>
+    <!-- Tailwind CSS para diseño minimalista y limpio -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- React y ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -12,7 +12,7 @@
     <!-- Babel para compilar JSX en tiempo real -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-emerald-50 font-sans">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -31,7 +31,6 @@
             // Manejo de Inicio de Sesión (CU-01)
             const handleLogin = (e) => {
                 e.preventDefault();
-                // Credenciales de prueba estándar
                 if (username === 'admin' && password === '12345') {
                     setIsLoggedIn(true);
                     setWelcomeMessage(`¡Bienvenido al sistema, ${username.toUpperCase()}!`);
@@ -53,50 +52,59 @@
                 }
             };
 
-            // Pantalla de Login (CU-01, CU-03)
+            // Pantalla de Login con nueva estética verde/blanca y nombre de la app (CU-01, CU-03)
             if (!isLoggedIn) {
                 return (
-                    <div className="min-h-screen flex items-center justify-center bg-slate-900 px-4">
-                        <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
+                    <div className="min-h-screen flex items-center justify-center bg-emerald-50 px-4">
+                        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-emerald-100 p-8">
+                            
+                            {/* Cabecera con el nombre de la aplicación */}
                             <div className="text-center mb-8">
-                                <h1 className="text-2xl font-bold text-slate-800">Control de Taller</h1>
-                                <p className="text-sm text-slate-500 mt-1">Ingrese sus credenciales para acceder</p>
+                                <div className="inline-block p-3 bg-emerald-100 text-emerald-700 rounded-full text-2xl mb-3 shadow-inner">
+                                    🛠️
+                                </div>
+                                <h1 className="text-3xl font-extrabold text-emerald-900 tracking-tight">
+                                    ¿Hay materiales ?
+                                </h1>
+                                <p className="text-sm text-emerald-600 mt-1 font-medium">
+                                    Sistema de control de inventario y proyectos
+                                </p>
                             </div>
 
                             {errorMessage && (
-                                <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded">
+                                <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded-lg">
                                     {errorMessage}
                                 </div>
                             )}
 
-                            <form onSubmit={handleLogin} className="space-y-6">
+                            <form onSubmit={handleLogin} className="space-y-5">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Usuario</label>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Usuario</label>
                                     <input 
                                         type="text" 
                                         value={username}
                                         onChange={(e) => setUsername(e.target.value)}
                                         required
-                                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
                                         placeholder="Ej. admin"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Contraseña</label>
                                     <div className="relative">
                                         <input 
                                             type={showPassword ? "text" : "password"} 
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
                                             required
-                                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                                            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition pr-12"
                                             placeholder="••••••"
                                         />
                                         <button 
                                             type="button"
                                             onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute inset-y-0 right-0 px-3 flex items-center text-slate-500 hover:text-slate-700 text-sm font-medium"
+                                            className="absolute inset-y-0 right-0 px-3.5 flex items-center text-xs font-semibold text-emerald-700 hover:text-emerald-900"
                                         >
                                             {showPassword ? "Ocultar" : "Ver"}
                                         </button>
@@ -105,99 +113,98 @@
 
                                 <button 
                                     type="submit"
-                                    className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition duration-200 shadow-md"
+                                    className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition duration-200 shadow-lg shadow-emerald-600/20"
                                 >
                                     Iniciar Sesión
                                 </button>
                             </form>
+
                             <div className="mt-6 text-center text-xs text-slate-400">
-                                Credenciales de prueba por defecto: usuario: <b>admin</b> / contraseña: <b>12345</b>
+                                Acceso de prueba: <b>admin</b> / <b>12345</b>
                             </div>
                         </div>
                     </div>
                 );
             }
 
-            // Menú Principal y Navegación
+            // Menú Principal
             return (
-                <div className="min-h-screen bg-slate-100 flex flex-col">
-                    {/* Barra Superior / Header */}
-                    <header className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
+                <div className="min-h-screen bg-slate-50 flex flex-col">
+                    <header className="bg-white shadow-sm border-b border-slate-200 px-6 py-4 flex justify-between items-center">
                         <div>
-                            <h2 className="text-xl font-bold text-slate-800">Sistema de Gestión de Taller</h2>
+                            <h2 className="text-xl font-bold text-emerald-900">¿Hay materiales ?</h2>
                             <p className="text-xs text-emerald-600 font-medium">{welcomeMessage}</p>
                         </div>
                         <button 
                             onClick={handleLogout}
-                            className="bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-lg text-sm font-semibold transition"
+                            className="bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-xl text-sm font-semibold transition"
                         >
-                            Cerrar Sesión (CU-02)
+                            Cerrar Sesión
                         </button>
                     </header>
 
-                    {/* Contenido Principal */}
                     <main className="flex-1 max-w-6xl w-full mx-auto p-6">
                         {activeModule === 'menu' && (
                             <div>
-                                <h3 className="text-lg font-semibold text-slate-700 mb-6">Menú Principal</h3>
+                                <h3 className="text-lg font-bold text-slate-800 mb-6">Menú Principal</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div 
                                         onClick={() => setActiveModule('almacenamiento')}
-                                        className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer flex flex-col items-center text-center"
+                                        className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md hover:border-emerald-300 transition cursor-pointer flex flex-col items-center text-center"
                                     >
-                                        <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xl font-bold mb-4">📦</div>
+                                        <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center text-xl font-bold mb-4 shadow-sm">📦</div>
                                         <h4 className="text-lg font-semibold text-slate-800">Almacenamiento</h4>
                                         <p className="text-sm text-slate-500 mt-2">Gestionar herramientas, materiales, inventario y stock.</p>
                                     </div>
 
                                     <div 
                                         onClick={() => setActiveModule('listas')}
-                                        className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer flex flex-col items-center text-center"
+                                        className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md hover:border-emerald-300 transition cursor-pointer flex flex-col items-center text-center"
                                     >
-                                        <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-xl font-bold mb-4">📋</div>
+                                        <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center text-xl font-bold mb-4 shadow-sm">📋</div>
                                         <h4 className="text-lg font-semibold text-slate-800">Listas de Materiales</h4>
                                         <p className="text-sm text-slate-500 mt-2">Crear listas de verificación y asignar ítems del inventario.</p>
                                     </div>
 
                                     <div 
                                         onClick={() => setActiveModule('proyectos')}
-                                        className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition cursor-pointer flex flex-col items-center text-center"
+                                        className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md hover:border-emerald-300 transition cursor-pointer flex flex-col items-center text-center"
                                     >
-                                        <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-xl font-bold mb-4">📊</div>
+                                        <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-xl flex items-center justify-center text-xl font-bold mb-4 shadow-sm">📊</div>
                                         <h4 className="text-lg font-semibold text-slate-800">Proyectos</h4>
-                                        <p className="text-sm text-slate-500 mt-2">Administrar proyectos en curso, pendientes, finalizados y progreso.</p>
+                                        <p className="text-sm text-slate-500 mt-2">Administrar proyectos en curso, pendientes y su progreso.</p>
                                     </div>
                                 </div>
                             </div>
                         )}
 
                         {activeModule === 'almacenamiento' && (
-                            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                                 <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-lg font-semibold text-slate-800">Módulo de Almacenamiento (Inventario)</h3>
-                                    <button onClick={() => setActiveModule('menu')} className="text-sm text-blue-600 hover:underline">← Volver al Menú</button>
+                                    <h3 className="text-lg font-semibold text-slate-800">Módulo de Almacenamiento</h3>
+                                    <button onClick={() => setActiveModule('menu')} className="text-sm text-emerald-600 font-semibold hover:underline">← Volver al Menú</button>
                                 </div>
-                                <p className="text-slate-500 text-sm">Aquí construiremos próximamente el registro, edición, filtrado y eliminación de herramientas y materiales (CU-04 al CU-13).</p>
+                                <p className="text-slate-500 text-sm">Próximamente: Registro, edición y filtrado de herramientas y materiales (CU-04 al CU-13).</p>
                             </div>
                         )}
 
                         {activeModule === 'listas' && (
-                            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="text-lg font-semibold text-slate-800">Módulo de Listas de Materiales</h3>
-                                    <button onClick={() => setActiveModule('menu')} className="text-sm text-blue-600 hover:underline">← Volver al Menú</button>
+                                    <button onClick={() => setActiveModule('menu')} className="text-sm text-emerald-600 font-semibold hover:underline">← Volver al Menú</button>
                                 </div>
-                                <p className="text-slate-500 text-sm">Aquí construiremos la creación de listas de verificación y la asociación de ítems (CU-14 al CU-18).</p>
+                                <p className="text-slate-500 text-sm">Próximamente: Creación de listas de verificación y asociación (CU-14 al CU-18).</p>
                             </div>
                         )}
 
                         {activeModule === 'proyectos' && (
-                            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="text-lg font-semibold text-slate-800">Módulo de Proyectos</h3>
-                                    <button onClick={() => setActiveModule('menu')} className="text-sm text-blue-600 hover:underline">← Volver al Menú</button>
+                                    <button onClick={() => setActiveModule('menu')} className="text-sm text-emerald-600 font-semibold hover:underline">← Volver al Menú</button>
                                 </div>
-                                <p className="text-slate-500 text-sm">Aquí construiremos los estados del proyecto, el seguimiento en curso y los reportes (CU-19 al CU-37).</p>
+                                <p className="text-slate-500 text-sm">Próximamente: Estados de proyectos, seguimiento y progreso (CU-19 al CU-37).</p>
                             </div>
                         )}
                     </main>
