@@ -3,482 +3,1626 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>¿Hay materiales ? - Sistema de Taller</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React y ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <title>¿Hay materiales? · Sistema de taller</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23202328'/%3E%3Cpath d='M14.5 6.5a4 4 0 00-5.2 5.2L3.5 17.5l3 3 5.8-5.8a4 4 0 005.2-5.2l-2.7 2.7-2.3-.7-.7-2.3z' fill='none' stroke='%23f07a2a' stroke-width='1.8' stroke-linejoin='round'/%3E%3C/svg%3E">
+    <!-- Archivo + JetBrains Mono: grotesca sobria para interfaz y monoespaciada técnica para códigos de bodega y cifras -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS (versión fija) -->
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script>
+        // Paleta "grafito + naranja de seguridad": roles de color, no colores sueltos
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Archivo', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+                    },
+                    colors: {
+                        canvas: 'var(--canvas)',
+                        surface: 'var(--surface)',
+                        ink: 'var(--ink)',
+                        'ink-soft': 'var(--ink-soft)',
+                        muted: 'var(--muted)',
+                        line: 'var(--line)',
+                        'line-strong': 'var(--line-strong)',
+                        brand: 'var(--brand)',
+                        'brand-ink': 'var(--brand-ink)',
+                        'brand-raised': 'var(--brand-raised)',
+                        'brand-hover': 'var(--brand-hover)',
+                        action: 'var(--action)',
+                        'action-ink': 'var(--action-ink)',
+                        'action-on-dark': 'var(--action-on-dark)',
+                        link: 'var(--link)',
+                        'link-hover': 'var(--link-hover)',
+                        'action-hover': 'var(--action-hover)',
+                        'action-soft': 'var(--action-soft)',
+                        'action-line': 'var(--action-line)',
+                        ok: 'var(--ok)',
+                        'ok-soft': 'var(--ok-soft)',
+                        warn: 'var(--warn)',
+                        'warn-soft': 'var(--warn-soft)',
+                        err: 'var(--err)',
+                        'err-strong': 'var(--err-strong)',
+                        'err-soft': 'var(--err-soft)',
+                        'err-soft-hover': 'var(--err-soft-hover)',
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        :root {
+            --canvas: oklch(0.975 0.003 260);
+            --surface: oklch(1 0 0);
+            --ink: oklch(0.24 0.015 260);
+            --ink-soft: oklch(0.35 0.015 260);
+            --muted: oklch(0.48 0.015 260);
+            --line: oklch(0.91 0.005 260);
+            --line-strong: oklch(0.83 0.008 260);
+            --brand: oklch(0.27 0.015 260);
+            --brand-ink: oklch(0.84 0.01 260);
+            --brand-raised: oklch(0.34 0.015 260);
+            --brand-hover: oklch(0.40 0.015 260);
+            --action: oklch(0.68 0.18 45);
+            --action-hover: oklch(0.63 0.18 45);
+            --action-ink: oklch(0.20 0.04 45);
+            --action-on-dark: oklch(0.80 0.15 55);
+            --action-soft: oklch(0.96 0.025 60);
+            --action-line: oklch(0.84 0.08 55);
+            --link: oklch(0.50 0.15 42);
+            --link-hover: oklch(0.42 0.13 42);
+            --ok: oklch(0.44 0.11 155);
+            --ok-soft: oklch(0.95 0.04 155);
+            --warn: oklch(0.46 0.10 85);
+            --warn-soft: oklch(0.95 0.08 95);
+            --err: oklch(0.50 0.18 25);
+            --err-strong: oklch(0.42 0.16 25);
+            --err-soft: oklch(0.96 0.025 25);
+            --err-soft-hover: oklch(0.92 0.045 25);
+            /* Emil Kowalski custom easing curves */
+            --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+            --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+            --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+        }
+        body { color: var(--ink); caret-color: var(--link); accent-color: var(--action); }
+        ::selection { background: var(--action-line); color: var(--ink); }
+        /* gana a la preflight de Tailwind CDN, que se inyecta después */
+        input::placeholder, textarea::placeholder { color: var(--muted) !important; opacity: 1; }
+        :focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+        td, th, .tabular { font-variant-numeric: tabular-nums; }
+        h1, h2, h3 { text-wrap: balance; }
+        /* La "x" nativa del buscador no sigue la paleta; usamos un botón propio */
+        input[type="search"]::-webkit-search-cancel-button { display: none; }
+
+        /* Emil Kowalski Design Engineering: Buttons must feel responsive (scale(0.97) on press, explicit properties, never transition:all) */
+        .btn-press {
+            transition: transform 160ms var(--ease-out), background-color 150ms var(--ease-out), border-color 150ms var(--ease-out), color 150ms var(--ease-out);
+        }
+        .btn-press:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+
+        /* Never animate from scale(0): start from scale(0.96) + opacity with strong ease-out */
+        .panel-enter {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            transform-origin: top center;
+            transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out);
+            @starting-style {
+                opacity: 0;
+                transform: scale(0.97) translateY(-4px);
+            }
+        }
+
+        /* Interruptible Sonner-style toast transition using @starting-style and percentage translateY */
+        .toast-in {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            transition: transform 260ms var(--ease-out), opacity 200ms ease;
+            @starting-style {
+                opacity: 0;
+                transform: translateY(100%) scale(0.96);
+            }
+        }
+
+        /* Touch device hover protection: gate row and card hover effects behind (hover: hover) and (pointer: fine) */
+        .hover-row {
+            transition: background-color 150ms var(--ease-out);
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .hover-row:hover {
+                background-color: var(--canvas);
+            }
+        }
+
+        /* Reduced motion: keep gentle opacity comprehension, remove positional movement */
+        @media (prefers-reduced-motion: reduce) {
+            .btn-press:active:not(:disabled) { transform: none; }
+            .panel-enter, .toast-in {
+                transition: opacity 150ms ease !important;
+                transform: none !important;
+                @starting-style {
+                    opacity: 0;
+                    transform: none !important;
+                }
+            }
+        }
+    </style>
+    <!-- React y ReactDOM (versiones fijas: una actualización del CDN no rompe la demo) -->
+    <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
     <!-- Babel para compilar JSX en tiempo real -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
 </head>
-<body class="bg-emerald-50/50 font-sans">
-    <div id="root"></div>
+<body class="bg-canvas font-sans">
+    <div id="root">
+        <!-- Se ve mientras Babel compila; React lo reemplaza al montar -->
+        <p class="min-h-screen flex items-center justify-center text-sm text-muted">Cargando el sistema…</p>
+    </div>
+    <noscript><p style="padding:2rem;text-align:center">Este sistema necesita JavaScript activado para funcionar.</p></noscript>
 
     <script type="text/babel">
+        const STOCK_BAJO = 5;
+        const CANTIDAD_MAX = 999999;
+        const formatoNumero = new Intl.NumberFormat('es-CR');
+        const fmt = (n) => formatoNumero.format(n);
+        const plural = (n, uno, varios) => `${fmt(n)} ${n === 1 ? uno : varios}`;
+
+        // Comparación sin mayúsculas ni tildes: "sierra" encuentra "Sierra", "ubicacion" encuentra "Ubicación"
+        const normalizar = (texto) => texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+        // Valida un entero entre `min` y CANTIDAD_MAX; devuelve el mensaje de error o ''
+        const errorCantidad = (valor, min = 0) => {
+            if (String(valor).trim() === '') return 'Escribe una cantidad.';
+            const n = Number(valor);
+            if (!Number.isInteger(n)) return 'Usa un número entero, sin decimales.';
+            if (n < min) return min === 0 ? 'La cantidad no puede ser negativa.' : `La cantidad mínima es ${min}.`;
+            if (n > CANTIDAD_MAX) return `La cantidad máxima es ${fmt(CANTIDAD_MAX)}.`;
+            return '';
+        };
+
+        const insertAt = (arr, index, el) => [...arr.slice(0, index), el, ...arr.slice(index)];
+
+        // La rueda del mouse no debe cambiar una cantidad sin querer
+        const sinRueda = (e) => e.currentTarget.blur();
+
+        // Mueve el foco a un elemento cuando React ya lo pintó
+        const enfocar = (selector, respaldo) => requestAnimationFrame(() => {
+            const el = document.querySelector(selector) || (respaldo && document.querySelector(respaldo));
+            el?.focus();
+        });
+
+        // Datos de ejemplo para la demo (CU-04 al CU-37)
+        const INVENTARIO_INICIAL = [
+            { id: 1, categoria: 'Herramienta', nombre: 'Taladro percutor', ubicacion: 'Estante A-1', cantidad: 4 },
+            { id: 2, categoria: 'Material', nombre: 'Tornillos de madera 2"', ubicacion: 'Caja B-3', cantidad: 150 },
+            { id: 3, categoria: 'Herramienta', nombre: 'Sierra circular', ubicacion: 'Estante A-2', cantidad: 2 },
+            { id: 4, categoria: 'Material', nombre: 'Pegamento de contacto', ubicacion: 'Estante C-1', cantidad: 8 },
+            { id: 5, categoria: 'Material', nombre: 'Lija grano 120', ubicacion: 'Estante C-4', cantidad: 0 },
+        ];
+        const LISTAS_INICIALES = [
+            { id: 1, nombre: 'Kit de mantenimiento general', items: [ { id: 1, cantidadNecesaria: 1 }, { id: 2, cantidadNecesaria: 40 } ] },
+            { id: 2, nombre: 'Mueble de cocina', items: [ { id: 2, cantidadNecesaria: 200 }, { id: 4, cantidadNecesaria: 2 }, { id: 5, cantidadNecesaria: 6 } ] },
+        ];
+        const PROYECTOS_INICIALES = [
+            { id: 101, nombre: 'Instalación de alacena y gabinete', responsable: 'Carlos Méndez', listId: 2, estado: 'Pendiente', avance: 20, nota: 'A la espera de reponer lija y tornillos de 2" en bodega.' },
+            { id: 102, nombre: 'Mantenimiento preventivo de bancos', responsable: 'Ana Vargas', listId: 1, estado: 'En curso', avance: 65, nota: 'Revisión de prensas y ajuste de mesas de corte del taller.' },
+        ];
+
+        // Estado que sobrevive a recargar la página; si el navegador bloquea el almacenamiento, sigue en memoria
+        function usePersistentState(clave, inicial) {
+            const [valor, setValor] = React.useState(() => {
+                try {
+                    const guardado = localStorage.getItem(clave);
+                    return guardado ? JSON.parse(guardado) : inicial;
+                } catch { return inicial; }
+            });
+            React.useEffect(() => {
+                try { localStorage.setItem(clave, JSON.stringify(valor)); } catch {}
+            }, [clave, valor]);
+            return [valor, setValor];
+        }
+
+        // ¿Pantalla de celular? Cambia cómo se muestran avisos y editores en línea
+        const MQ_ANGOSTA = '(max-width: 639px)';
+        const esAngosta = () => { try { return window.matchMedia(MQ_ANGOSTA).matches; } catch { return false; } };
+        function useAngosta() {
+            const [angosta, setAngosta] = React.useState(esAngosta);
+            React.useEffect(() => {
+                const mq = window.matchMedia(MQ_ANGOSTA);
+                const onChange = () => setAngosta(mq.matches);
+                mq.addEventListener('change', onChange);
+                return () => mq.removeEventListener('change', onChange);
+            }, []);
+            return angosta;
+        }
+
+        // Editor de una cantidad. En celular va apilado en su propia fila para que nada quede fuera de pantalla
+        function EditorCantidad({ id, label, value, error, min, onChange, onSubmit, onCancel, apilado }) {
+            return (
+                <form onSubmit={onSubmit} noValidate onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onCancel(); } }} className={apilado ? 'flex flex-col gap-2' : 'inline-flex flex-col items-end gap-1'}>
+                    <label htmlFor={id} className={apilado ? 'text-sm font-semibold text-ink' : 'sr-only'}>{label}</label>
+                    <div className={apilado ? 'flex flex-col gap-2' : 'flex items-center gap-1'}>
+                        <input id={id} type="number" inputMode="numeric" min={min} max={CANTIDAD_MAX} step="1" autoFocus onWheel={sinRueda} value={value} onChange={onChange} aria-invalid={!!error} aria-describedby={error ? `${id}-err` : undefined} className={`${apilado ? 'w-full' : 'w-24'} min-h-[2.5rem] px-2 border rounded-lg text-base md:text-sm font-mono text-right bg-surface focus:outline-none focus:ring-2 focus:ring-link ${borde(error)}`} />
+                        <div className={apilado ? 'grid grid-cols-2 gap-2' : 'flex items-center gap-1'}>
+                            <button type="button" onClick={onCancel} className={`${BTN_SECUNDARIO} px-3`}>Cancelar</button>
+                            <button type="submit" className={`${BTN_PRIMARIO} px-3`}>Guardar</button>
+                        </div>
+                    </div>
+                    <FieldError id={`${id}-err`}>{error}</FieldError>
+                </form>
+            );
+        }
+
+        // Íconos dibujados con un solo trazo y grosor
+        const ICONOS = {
+            caja: 'M21 8l-9-5-9 5v8l9 5 9-5V8z M3 8l9 5 9-5 M12 13v8',
+            lista: 'M9 3h6v3H9z M9 4.5H6.5A1.5 1.5 0 005 6v13.5A1.5 1.5 0 006.5 21h11a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H15 M9 11.5l1.5 1.5L13 10.5 M9 16.5h6',
+            carpeta: 'M3 7.5A1.5 1.5 0 014.5 6h4l2 2h9A1.5 1.5 0 0121 9.5v8a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 17.5z',
+            llave: 'M14.5 6.5a4 4 0 00-5.2 5.2L3.5 17.5l3 3 5.8-5.8a4 4 0 005.2-5.2l-2.7 2.7-2.3-.7-.7-2.3z',
+            mas: 'M12 5v14 M5 12h14',
+            buscar: 'M11 18a7 7 0 100-14 7 7 0 000 14z M20 20l-4-4',
+            salir: 'M15 4h3.5A1.5 1.5 0 0120 5.5v13a1.5 1.5 0 01-1.5 1.5H15 M10 16l4-4-4-4 M14 12H4',
+            check: 'M5 12.5l4.5 4.5L19 7.5',
+            alerta: 'M12 4l9 16H3z M12 10v4 M12 17h.01',
+            x: 'M6 6l12 12M18 6L6 18',
+            flechaIzq: 'M15 18l-6-6 6-6',
+            flechaDer: 'M9 18l6-6-6-6',
+            lapiz: 'M4 20h4L19 9l-4-4L4 16v4z M13.5 6.5l4 4',
+            basura: 'M4 7h16 M10 11v6 M14 11v6 M6 7l1 13h10l1-13 M9 7V4h6v3',
+            orden: 'M8 9l4-4 4 4 M8 15l4 4 4-4',
+            ordenAsc: 'M7 14l5-5 5 5',
+            ordenDesc: 'M7 10l5 5 5-5',
+        };
+
+        function Icon({ name, className = 'w-5 h-5', strokeWidth = 1.8 }) {
+            return (
+                <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d={ICONOS[name]} />
+                </svg>
+            );
+        }
+
+        // Botones: un solo sistema de tamaños para toda la app con feedback físico scale(0.97)
+        const BTN = 'btn-press inline-flex items-center justify-center gap-1.5 rounded-xl text-sm font-semibold whitespace-nowrap min-h-[2.5rem] px-4';
+        const BTN_PRIMARIO = `${BTN} bg-action text-action-ink hover:bg-action-hover`;
+        const BTN_SECUNDARIO = `${BTN} bg-surface text-ink border border-line-strong hover:bg-canvas`;
+        const BTN_PELIGRO = `${BTN} px-3 text-muted hover:text-err-strong hover:bg-err-soft`;
+        const ENLACE = 'inline-flex items-center gap-1 text-sm font-semibold text-link hover:text-link-hover underline-offset-4 hover:underline';
+
+        const CAMPO = 'w-full min-h-[2.5rem] px-3 py-2 border rounded-xl text-base md:text-sm bg-surface focus:outline-none focus:ring-2 focus:ring-link';
+        const borde = (error) => error ? 'border-err' : 'border-line-strong';
+        const ETIQUETA = 'block text-sm font-semibold text-ink mb-1';
+
+        // Estado de stock en bodega: texto + ícono, no solo color
+        const stockStatus = (cantidad) => {
+            if (cantidad <= 0) return { label: 'Agotado', cls: 'bg-err-soft text-err-strong', icon: 'x' };
+            if (cantidad <= STOCK_BAJO) return { label: 'Bajo', cls: 'bg-warn-soft text-warn', icon: 'alerta' };
+            return { label: 'Suficiente', cls: 'bg-ok-soft text-ok', icon: 'check' };
+        };
+
+        function Badge({ cls, icon, children }) {
+            return (
+                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${cls}`}>
+                    <Icon name={icon} className="w-3.5 h-3.5" strokeWidth={2.4} />
+                    {children}
+                </span>
+            );
+        }
+
+        const StockBadge = ({ cantidad }) => {
+            const s = stockStatus(cantidad);
+            return <Badge cls={s.cls} icon={s.icon}>{s.label}</Badge>;
+        };
+
+        function FieldError({ id, children }) {
+            if (!children) return null;
+            return <p id={id} className="mt-1 text-sm font-medium text-err-strong">{children}</p>;
+        }
+
+        // Avisos tras cada acción: se apilan (hasta 3), cada uno con su tiempo, y se pausan al pasar el mouse o enfocar
+        function ToastItem({ toast, onDismiss }) {
+            const [pausado, setPausado] = React.useState(false);
+            const ref = React.useRef(null);
+            // Si el foco estaba en el aviso, lo devolvemos a lo restaurado o al título de la sección
+            const devolverFoco = (destino) => {
+                if (ref.current && ref.current.contains(document.activeElement)) enfocar(destino || 'main h1', 'main h1');
+            };
+            React.useEffect(() => {
+                if (pausado) return;
+                const t = setTimeout(() => onDismiss(toast.key), toast.action ? 8000 : 4000);
+                return () => clearTimeout(t);
+            }, [pausado, toast.key]);
+            return (
+                <div
+                    ref={ref}
+                    className="toast-in pointer-events-auto flex items-center gap-2 w-full sm:w-auto sm:max-w-md bg-brand text-white pl-4 pr-1.5 py-1.5 rounded-xl shadow-[0_10px_28px_-10px_oklch(0.24_0.015_260/0.55)]"
+                    onMouseEnter={() => setPausado(true)} onMouseLeave={() => setPausado(false)}
+                    onFocus={() => setPausado(true)} onBlur={() => setPausado(false)}
+                >
+                    <p className="flex-1 text-sm py-1.5 [overflow-wrap:anywhere]">{toast.message}</p>
+                    {toast.action && (
+                        <button type="button" onClick={() => { toast.action.run(); devolverFoco(toast.action.focusAfter); onDismiss(toast.key); }} className="shrink-0 min-h-[2.5rem] px-3 rounded-lg text-sm font-bold text-action-on-dark hover:bg-brand-raised">{toast.action.label}</button>
+                    )}
+                    <button type="button" onClick={() => { devolverFoco(); onDismiss(toast.key); }} aria-label="Cerrar aviso" className="shrink-0 w-10 h-10 rounded-lg text-brand-ink hover:bg-brand-raised flex items-center justify-center">
+                        <Icon name="x" className="w-4 h-4" strokeWidth={2} />
+                    </button>
+                </div>
+            );
+        }
+
+        function Toasts({ toasts, onDismiss }) {
+            return (
+                <div id="avisos" role="status" aria-live="polite" className="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:right-6 z-50 flex flex-col items-stretch sm:items-end gap-2 pointer-events-none">
+                    {toasts.map(t => <ToastItem key={t.key} toast={t} onDismiss={onDismiss} />)}
+                </div>
+            );
+        }
+
+        // Cálculo central del producto: ¿alcanza lo que hay en bodega para esta lista?
+        function revisarLista(lista, inventory) {
+            const filas = lista.items
+                .map(it => {
+                    const inv = inventory.find(i => i.id === it.id);
+                    if (!inv) return null;
+                    const falta = Math.max(0, it.cantidadNecesaria - inv.cantidad);
+                    return { ...inv, necesito: it.cantidadNecesaria, falta };
+                })
+                .filter(Boolean);
+            const faltantes = filas.filter(f => f.falta > 0);
+            return { filas, faltantes, lista: filas.length > 0 && faltantes.length === 0 };
+        }
+
+        function ResumenBadge({ revision }) {
+            if (revision.filas.length === 0) return <Badge cls="bg-canvas text-muted border border-line" icon="lista">Sin materiales</Badge>;
+            if (revision.lista) return <Badge cls="bg-ok-soft text-ok" icon="check">Puedes empezar</Badge>;
+            const n = revision.faltantes.length;
+            return <Badge cls="bg-err-soft text-err-strong" icon="alerta">{n === 1 ? 'Falta 1 material' : `Faltan ${fmt(n)} materiales`}</Badge>;
+        }
+
+        // Texto corto de lo que falta: "Tornillos de madera 2" (50) · Lija grano 120 (6)"
+        const textoFaltantes = (faltantes) => faltantes.map(f => `${f.nombre} (${fmt(f.falta)})`).join(' · ');
+
+        const PESTANAS = [
+            { id: 'listas', label: 'Listas', icon: 'lista' },
+            { id: 'inventario', label: 'Inventario', icon: 'caja' },
+            { id: 'proyectos', label: 'Proyectos', icon: 'carpeta' },
+        ];
+
         function App() {
-            // Estados de Autenticación (CU-01, CU-03)
+            // Autenticación (CU-01, CU-03)
             const [isLoggedIn, setIsLoggedIn] = React.useState(false);
             const [username, setUsername] = React.useState('');
             const [password, setPassword] = React.useState('');
             const [showPassword, setShowPassword] = React.useState(false);
             const [errorMessage, setErrorMessage] = React.useState('');
-            const [welcomeMessage, setWelcomeMessage] = React.useState('');
-            
-            // Navegación de Módulos
-            const [activeModule, setActiveModule] = React.useState('menu');
+            const [loginErrorField, setLoginErrorField] = React.useState(null); // 'user' | 'pass' | 'both'
+            const angosta = useAngosta();
+            const [activeUser, setActiveUser] = React.useState('');
 
-            // Inventario Global (CU-04 al CU-13)
-            const [inventory, setInventory] = React.useState([
-                { id: 1, categoria: 'Herramienta', nombre: 'Taladro Percutor', ubicacion: 'Estante A-1', cantidad: 4 },
-                { id: 2, categoria: 'Material', nombre: 'Tornillos de Madera 2"', ubicacion: 'Caja B-3', cantidad: 150 },
-                { id: 3, categoria: 'Herramienta', nombre: 'Sierra Circular', ubicacion: 'Estante A-2', cantidad: 2 },
-                { id: 4, categoria: 'Material', nombre: 'Pegamento de Contacto', ubicacion: 'Estante C-1', cantidad: 8 }
-            ]);
-            
-            // Estados del Módulo de Almacenamiento
-            const [showAddModal, setShowAddModal] = React.useState(false);
+            const [activeModule, setActiveModule] = React.useState('listas');
+
+            // Inventario (CU-04 al CU-13)
+            const [inventory, setInventory] = usePersistentState('hm-inventario', INVENTARIO_INICIAL);
+            const [showAddItem, setShowAddItem] = React.useState(false);
             const [newCategory, setNewCategory] = React.useState('Herramienta');
             const [newName, setNewName] = React.useState('');
             const [newLocation, setNewLocation] = React.useState('');
             const [newQuantity, setNewQuantity] = React.useState('');
+            const [itemErrors, setItemErrors] = React.useState({});
             const [searchTerm, setSearchTerm] = React.useState('');
             const [filterCategory, setFilterCategory] = React.useState('Todos');
+            const [editing, setEditing] = React.useState(null); // { id, value, error } al ajustar una cantidad
 
-            // Estados del Módulo de Listas de Materiales (CU-14 al CU-18)
-            const [lists, setLists] = React.useState([
-                { id: 1, nombre: 'Kit Mantenimiento General', items: [ { id: 1, nombre: 'Taladro Percutor', cantidadNecesaria: 1 } ] }
-            ]);
+            // Listas de materiales (CU-14 al CU-18)
+            const [lists, setLists] = usePersistentState('hm-listas', LISTAS_INICIALES);
             const [newListName, setNewListName] = React.useState('');
-            const [showAddListModal, setShowAddListModal] = React.useState(false);
-            const [selectedList, setSelectedList] = React.useState(null); // Para ver detalles de una lista
+            const [listNameError, setListNameError] = React.useState('');
+            const [showAddList, setShowAddList] = React.useState(false);
+            const [selectedListId, setSelectedListId] = React.useState(null);
             const [itemToAddId, setItemToAddId] = React.useState('');
+            const [needQty, setNeedQty] = React.useState('1');
+            const [addErrors, setAddErrors] = React.useState({});
+            const [editingNeed, setEditingNeed] = React.useState(null); // { id, value, error }
+            const [editingListTitle, setEditingListTitle] = React.useState(null); // { value, error }
+            const [editingItem, setEditingItem] = React.useState(null); // { id, categoria, nombre, ubicacion, errors }
 
-            // Manejo de Inicio de Sesión (CU-01)
-            const handleLogin = (e) => {
-                e.preventDefault();
-                if (username === 'admin' && password === '12345') {
-                    setIsLoggedIn(true);
-                    setWelcomeMessage(`¡Bienvenido al sistema, ${username.toUpperCase()}!`);
-                    setErrorMessage('');
-                    setActiveModule('menu');
-                } else {
-                    setErrorMessage('Credenciales incorrectas. Verifique usuario y contraseña.');
-                    setPassword('');
-                }
+            // Proyectos del taller (CU-19 al CU-37)
+            const [projects, setProjects] = usePersistentState('hm-proyectos', PROYECTOS_INICIALES);
+            const [showAddProject, setShowAddProject] = React.useState(false);
+            const [newProjName, setNewProjName] = React.useState('');
+            const [newProjResp, setNewProjResp] = React.useState('');
+            const [newProjListId, setNewProjListId] = React.useState('');
+            const [newProjNote, setNewProjNote] = React.useState('');
+            const [projErrors, setProjErrors] = React.useState({});
+            const [filterProjState, setFilterProjState] = React.useState('Todos');
+
+            const [toasts, setToasts] = React.useState([]);
+            const [sort, setSort] = React.useState({ col: null, dir: 'asc' }); // orden de la tabla de inventario
+
+            // IDs que no chocan: siempre por encima del mayor existente
+            const idRef = React.useRef(0);
+            const nuevoId = () => {
+                const max = Math.max(0, ...inventory.map(i => i.id), ...lists.map(l => l.id), ...projects.map(p => p.id));
+                idRef.current = Math.max(idRef.current, max) + 1;
+                return idRef.current;
             };
 
-            // Manejo de Cierre de Sesión (CU-02)
-            const handleLogout = () => {
-                if (window.confirm('¿Está seguro de que desea cerrar sesión?')) {
-                    setIsLoggedIn(false);
-                    setUsername('');
-                    setPassword('');
-                    setActiveModule('menu');
-                    setSelectedList(null);
-                }
+            // La lista abierta se deriva de `lists`, así nunca queda desactualizada
+            const selectedList = lists.find(l => l.id === selectedListId) || null;
+
+            const searchRef = React.useRef(null);
+            const firstItemFieldRef = React.useRef(null);
+            const listNameRef = React.useRef(null);
+            const mainRef = React.useRef(null);
+
+            React.useEffect(() => { if (showAddItem) firstItemFieldRef.current?.focus(); }, [showAddItem]);
+            React.useEffect(() => { if (showAddList) listNameRef.current?.focus(); }, [showAddList]);
+
+            // Atajo: "/" enfoca la búsqueda del inventario
+            React.useEffect(() => {
+                const onKey = (e) => {
+                    if (e.key !== '/' || ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+                    if (activeModule === 'inventario') { e.preventDefault(); searchRef.current?.focus(); }
+                };
+                window.addEventListener('keydown', onKey);
+                return () => window.removeEventListener('keydown', onKey);
+            }, [activeModule]);
+
+            const showToast = (message, action) => setToasts(prev => [...prev, { message, action, key: Date.now() + Math.random() }].slice(esAngosta() ? -1 : -3));
+            const dismissToast = (key) => setToasts(prev => prev.filter(t => t.key !== key));
+
+            const goTo = (modulo) => {
+                setActiveModule(modulo);
+                setSelectedListId(null);
+                setEditing(null);
+                setEditingNeed(null);
+                setEditingListTitle(null);
+                setEditingItem(null);
+                setToasts(prev => prev.filter(t => t.action));
+                // Al cambiar de sección, el foco va a su título (lectores de pantalla lo anuncian)
+                enfocar('main h1');
             };
 
-            // Funciones de Almacenamiento
-            const handleAddItem = (e) => {
+            const jumpToInventoryItem = (item) => {
+                setActiveModule('inventario');
+                setSelectedListId(null);
+                setSearchTerm(item.nombre);
+                setFilterCategory('Todos');
+                setEditing({ id: item.id, value: String(item.cantidad), error: '' });
+                enfocar(`#qty-${item.id}`, '#inv-search');
+            };
+
+            const saveItemDetails = (e) => {
                 e.preventDefault();
-                if (!newName || !newLocation || newQuantity === '' || newQuantity < 0) {
-                    alert('Complete todos los campos correctamente y verifique que la cantidad no sea negativa.');
+                if (!editingItem) return;
+                const nombre = editingItem.nombre.trim();
+                const ubicacion = editingItem.ubicacion.trim();
+                const errors = {};
+                if (!nombre) errors.nombre = 'Escribe el nombre del ítem.';
+                else if (inventory.some(i => i.id !== editingItem.id && normalizar(i.nombre) === normalizar(nombre)))
+                    errors.nombre = `"${nombre}" ya está en el inventario.`;
+                if (!ubicacion) errors.ubicacion = 'Indica dónde se guarda, por ejemplo Estante A-1.';
+                if (Object.keys(errors).length) {
+                    setEditingItem({ ...editingItem, errors });
+                    enfocar(errors.nombre ? `#edit-name-${editingItem.id}` : `#edit-loc-${editingItem.id}`);
                     return;
                 }
-                const newItem = { id: Date.now(), categoria: newCategory, nombre: newName, ubicacion: newLocation, cantidad: Number(newQuantity) };
-                setInventory([newItem, ...inventory]);
-                setNewName(''); setNewLocation(''); setNewQuantity(''); setShowAddModal(false);
+                const itemId = editingItem.id;
+                setInventory(prev => prev.map(i => i.id === itemId ? { ...i, categoria: editingItem.categoria, nombre, ubicacion } : i));
+                setEditingItem(null);
+                enfocar(`[data-edit-item="${itemId}"]`);
+                showToast(`Actualizaste los datos de "${nombre}".`);
             };
 
-            const handleDeleteItem = (id, name) => {
-                if (window.confirm(`¿Remover permanentemente "${name}" del inventario?`)) {
-                    setInventory(inventory.filter(item => item.id !== id));
+            const saveListTitle = (e) => {
+                e.preventDefault();
+                if (!editingListTitle || !selectedList) return;
+                const nombre = editingListTitle.value.trim();
+                if (!nombre) {
+                    setEditingListTitle({ ...editingListTitle, error: 'Escribe un nombre para la lista.' });
+                    enfocar('#edit-list-title');
+                    return;
                 }
+                if (lists.some(l => l.id !== selectedList.id && normalizar(l.nombre) === normalizar(nombre))) {
+                    setEditingListTitle({ ...editingListTitle, error: `Ya tienes una lista llamada "${nombre}".` });
+                    enfocar('#edit-list-title');
+                    return;
+                }
+                setLists(prev => prev.map(l => l.id === selectedList.id ? { ...l, nombre } : l));
+                setEditingListTitle(null);
+                enfocar('#btn-rename-list');
+                showToast(`Renombraste la lista a "${nombre}".`);
+            };
+
+            const handleCreateProject = (e) => {
+                e.preventDefault();
+                const nombre = newProjName.trim();
+                const responsable = newProjResp.trim();
+                const nota = newProjNote.trim();
+                const errors = {};
+                if (!nombre) errors.nombre = 'Escribe el nombre del trabajo o proyecto.';
+                else if (projects.some(p => normalizar(p.nombre) === normalizar(nombre)))
+                    errors.nombre = `Ya existe un proyecto llamado "${nombre}".`;
+                if (!responsable) errors.responsable = 'Indica quién está a cargo.';
+                setProjErrors(errors);
+                if (Object.keys(errors).length) {
+                    enfocar(errors.nombre ? '#proj-name' : '#proj-resp');
+                    return;
+                }
+                const nuevo = {
+                    id: nuevoId(),
+                    nombre,
+                    responsable,
+                    listId: newProjListId ? Number(newProjListId) : null,
+                    estado: 'Pendiente',
+                    avance: 0,
+                    nota: nota || 'Sin notas adicionales.',
+                };
+                setProjects(prev => [nuevo, ...prev]);
+                setNewProjName(''); setNewProjResp(''); setNewProjListId(''); setNewProjNote('');
+                setProjErrors({});
+                setShowAddProject(false);
+                showToast(`Registraste el proyecto "${nombre}".`);
+            };
+
+            const handleUpdateProjectState = (proj, nuevoEstado) => {
+                const nuevoAvance = nuevoEstado === 'Terminado' ? 100 : nuevoEstado === 'Pendiente' ? 0 : Math.max(15, proj.avance === 100 ? 50 : proj.avance);
+                setProjects(prev => prev.map(p => p.id === proj.id ? { ...p, estado: nuevoEstado, avance: nuevoAvance } : p));
+                showToast(`"${proj.nombre}" pasó a ${nuevoEstado.toLowerCase()} (${nuevoAvance}%).`);
+            };
+
+            const handleStepProjectProgress = (proj, delta) => {
+                const siguiente = Math.max(0, Math.min(100, proj.avance + delta));
+                const nuevoEstado = siguiente === 100 ? 'Terminado' : siguiente === 0 ? 'Pendiente' : 'En curso';
+                setProjects(prev => prev.map(p => p.id === proj.id ? { ...p, avance: siguiente, estado: nuevoEstado } : p));
+                showToast(`Avance de "${proj.nombre}": ${siguiente}%.`);
+            };
+
+            const handleDeleteProject = (proj) => {
+                const index = projects.findIndex(p => p.id === proj.id);
+                setProjects(prev => prev.filter(p => p.id !== proj.id));
+                enfocar('#proj-title');
+                showToast(`Eliminaste el proyecto "${proj.nombre}".`, {
+                    label: 'Deshacer',
+                    focusAfter: `[data-del-proj="${proj.id}"]`,
+                    run: () => setProjects(prev => prev.some(p => p.id === proj.id) ? prev : insertAt(prev, Math.min(index, prev.length), proj))
+                });
+            };
+
+            const handleResetDemo = () => {
+                const prevInv = inventory;
+                const prevLists = lists;
+                const prevProjs = projects;
+                setInventory(INVENTARIO_INICIAL);
+                setLists(LISTAS_INICIALES);
+                setProjects(PROYECTOS_INICIALES);
+                setSelectedListId(null);
+                setEditing(null);
+                setEditingNeed(null);
+                setEditingItem(null);
+                setEditingListTitle(null);
+                setSearchTerm('');
+                setFilterCategory('Todos');
+                showToast('Restauraste los datos de demostración del taller.', {
+                    label: 'Deshacer',
+                    run: () => { setInventory(prevInv); setLists(prevLists); setProjects(prevProjs); }
+                });
+            };
+
+            const openList = (id) => {
+                setSelectedListId(id);
+                setAddErrors({});
+                setItemToAddId('');
+                setNeedQty('1');
+                setEditingNeed(null);
+                requestAnimationFrame(() => mainRef.current?.querySelector('h1')?.focus());
+            };
+
+            // Al volver al índice, el foco regresa a la lista de la que venías
+            const closeList = () => {
+                const id = selectedListId;
+                setSelectedListId(null);
+                enfocar(`[data-list-open="${id}"]`, '#lists-title');
+            };
+
+            // Inicio de sesión (CU-01)
+            const handleLogin = (e) => {
+                e.preventDefault();
+                if (!username.trim() || !password) {
+                    setLoginErrorField(!username.trim() && !password ? 'both' : !username.trim() ? 'user' : 'pass');
+                    setErrorMessage(!username.trim() && !password ? 'Escribe tu usuario y tu contraseña para entrar.' : !username.trim() ? 'Escribe tu usuario para entrar.' : 'Escribe tu contraseña para entrar.');
+                    enfocar(!username.trim() ? '#login-user' : '#login-pass');
+                    return;
+                }
+                if (username.trim() === 'admin' && password === '12345') {
+                    setIsLoggedIn(true);
+                    setActiveUser(username.trim());
+                    setErrorMessage('');
+                    setLoginErrorField(null);
+                    goTo('listas');
+                } else {
+                    setLoginErrorField('both');
+                    setErrorMessage('El usuario o la contraseña no coinciden. Revísalos e intenta de nuevo.');
+                    setPassword('');
+                    enfocar('#login-pass');
+                }
+            };
+
+            // Cierre de sesión (CU-02)
+            const handleLogout = () => {
+                setIsLoggedIn(false);
+                setUsername('');
+                setPassword('');
+                setShowPassword(false);
+                goTo('listas');
+            };
+
+            // Inventario: registrar ítem
+            const handleAddItem = (e) => {
+                e.preventDefault();
+                const nombre = newName.trim();
+                const ubicacion = newLocation.trim();
+                const errors = {};
+                if (!nombre) errors.nombre = 'Escribe el nombre del ítem.';
+                else if (inventory.some(i => normalizar(i.nombre) === normalizar(nombre)))
+                    errors.nombre = `"${nombre}" ya está en el inventario. Ajusta su cantidad en la tabla.`;
+                if (!ubicacion) errors.ubicacion = 'Indica dónde se guarda, por ejemplo Estante A-1.';
+                const qtyError = errorCantidad(newQuantity);
+                if (qtyError) errors.cantidad = qtyError;
+                setItemErrors(errors);
+                if (Object.keys(errors).length) {
+                    enfocar(errors.nombre ? '#item-name' : errors.ubicacion ? '#item-loc' : '#item-qty');
+                    return;
+                }
+
+                const newItem = { id: nuevoId(), categoria: newCategory, nombre, ubicacion, cantidad: Number(newQuantity) };
+                setInventory(prev => [newItem, ...prev]);
+                setNewName(''); setNewLocation(''); setNewQuantity('');
+                setShowAddItem(false);
+                showToast(`Agregaste "${nombre}" al inventario.`);
+            };
+
+            const closeAddItem = () => { setShowAddItem(false); setItemErrors({}); enfocar('#btn-add-item'); };
+            const cancelEdit = () => { const id = editing?.id; setEditing(null); enfocar(`[data-qty="${id}"]`); };
+            const cancelEditItem = () => { const id = editingItem?.id; setEditingItem(null); enfocar(`[data-edit-item="${id}"]`); };
+
+            // Eliminar ítem: sin diálogo, con "Deshacer" que reinserta solo lo borrado
+            const handleDeleteItem = (item) => {
+                const index = inventory.findIndex(i => i.id === item.id);
+                const enListas = lists.flatMap(l => {
+                    const j = l.items.findIndex(i => i.id === item.id);
+                    return j >= 0 ? [{ listId: l.id, entry: l.items[j], index: j }] : [];
+                });
+                const visibles = sortedInventory.map(i => i.id);
+                const pos = visibles.indexOf(item.id);
+                const siguiente = visibles[pos + 1] ?? visibles[pos - 1];
+
+                setInventory(prev => prev.filter(i => i.id !== item.id));
+                setLists(prev => prev.map(l => ({ ...l, items: l.items.filter(i => i.id !== item.id) })));
+                enfocar(`[data-del="${siguiente}"]`, '#inv-title');
+                showToast(
+                    enListas.length ? `Eliminaste "${item.nombre}" y lo quitaste de ${plural(enListas.length, 'lista', 'listas')}.` : `Eliminaste "${item.nombre}".`,
+                    {
+                        label: 'Deshacer',
+                        focusAfter: `[data-del="${item.id}"]`,
+                        run: () => {
+                            setInventory(prev => prev.some(i => i.id === item.id) ? prev : insertAt(prev, Math.min(index, prev.length), item));
+                            setLists(prev => prev.map(l => {
+                                const r = enListas.find(e => e.listId === l.id);
+                                return r && !l.items.some(i => i.id === item.id) ? { ...l, items: insertAt(l.items, Math.min(r.index, l.items.length), r.entry) } : l;
+                            }));
+                        }
+                    }
+                );
+            };
+
+            const saveEdit = (e) => {
+                e.preventDefault();
+                const error = errorCantidad(editing.value);
+                if (error) { setEditing({ ...editing, error }); return; }
+                const item = inventory.find(i => i.id === editing.id);
+                const nueva = Number(editing.value);
+                setInventory(prev => prev.map(i => i.id === editing.id ? { ...i, cantidad: nueva } : i));
+                enfocar(`[data-qty="${editing.id}"]`);
+                setEditing(null);
+                if (item) showToast(`"${item.nombre}" ahora tiene ${fmt(nueva)} en bodega.`);
             };
 
             const filteredInventory = inventory.filter(item => {
-                const matchesSearch = item.nombre.toLowerCase().includes(searchTerm.toLowerCase());
-                const matchesCategory = filterCategory === 'Todos' || item.categoria === filterCategory;
+                const q = normalizar(searchTerm);
+                const matchesSearch = !q || normalizar(item.nombre).includes(q) || normalizar(item.ubicacion).includes(q);
+                const matchesCategory = filterCategory === 'Todos'
+                    || (filterCategory === 'Bajo' ? item.cantidad <= STOCK_BAJO : item.categoria === filterCategory);
                 return matchesSearch && matchesCategory;
             });
+            const hayFiltros = searchTerm.trim() !== '' || filterCategory !== 'Todos';
 
-            // Funciones de Listas de Materiales (CU-14 al CU-18)
+            // Orden por columna (Nombre o En bodega); sin orden, se respeta el de registro
+            const sortedInventory = sort.col ? [...filteredInventory].sort((a, b) => {
+                const v = sort.col === 'nombre' ? a.nombre.localeCompare(b.nombre, 'es') : a.cantidad - b.cantidad;
+                return sort.dir === 'asc' ? v : -v;
+            }) : filteredInventory;
+            const toggleSort = (col) => setSort(prev => prev.col === col ? { col, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' });
+            const ariaSort = (col) => sort.col === col ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none';
+
+            const descripcionFiltro = [
+                searchTerm.trim() && `"${searchTerm.trim()}"`,
+                filterCategory === 'Herramienta' && 'herramientas',
+                filterCategory === 'Material' && 'materiales',
+                filterCategory === 'Bajo' && 'stock bajo o agotado',
+            ].filter(Boolean).join(' en ');
+            const conStockBajo = inventory.filter(i => i.cantidad <= STOCK_BAJO).length;
+
+            // Listas: crear (CU-14)
             const handleCreateList = (e) => {
                 e.preventDefault();
-                if (!newListName.trim()) return;
-                
-                // Validar unicidad del nombre (CU-14, E1)
-                const exists = lists.some(l => l.nombre.toLowerCase() === newListName.trim().toLowerCase());
-                if (exists) {
-                    alert('Ya existe una lista con ese nombre. Por favor elija un nombre único.');
+                const nombre = newListName.trim();
+                if (!nombre) { setListNameError('Escribe un nombre para la lista.'); enfocar('#list-name'); return; }
+                // Nombre único (CU-14, E1)
+                if (lists.some(l => normalizar(l.nombre) === normalizar(nombre))) {
+                    setListNameError(`Ya tienes una lista llamada "${nombre}". Usa otro nombre.`);
+                    enfocar('#list-name');
                     return;
                 }
-
-                const newList = { id: Date.now(), nombre: newListName.trim(), items: [] };
-                setLists([...lists, newList]);
+                const id = nuevoId();
+                setLists(prev => [...prev, { id, nombre, items: [] }]);
                 setNewListName('');
-                setShowAddListModal(false);
+                setListNameError('');
+                setShowAddList(false);
+                showToast(`Creaste la lista "${nombre}".`);
+                openList(id);
             };
 
-            const handleDeleteList = (id, name) => {
-                if (window.confirm(`¿Está seguro de borrar permanentemente la lista "${name}"?`)) {
-                    setLists(lists.filter(l => l.id !== id));
-                    if (selectedList && selectedList.id === id) setSelectedList(null);
-                }
+            const closeAddList = () => { setShowAddList(false); setListNameError(''); enfocar('#btn-add-list'); };
+            const cancelNeed = () => { const id = editingNeed?.id; setEditingNeed(null); enfocar(`[data-need="${id}"]`); };
+            const cancelListTitle = () => { setEditingListTitle(null); enfocar('#btn-rename-list'); };
+            const closeAddProject = () => { setShowAddProject(false); setProjErrors({}); enfocar('#btn-add-project'); };
+
+            const handleDeleteList = (list) => {
+                const index = lists.findIndex(l => l.id === list.id);
+                const siguiente = lists[index + 1]?.id ?? lists[index - 1]?.id;
+                setLists(prev => prev.filter(l => l.id !== list.id));
+                if (selectedListId === list.id) setSelectedListId(null);
+                enfocar(`[data-list-open="${siguiente}"]`, '#lists-title');
+                showToast(`Eliminaste la lista "${list.nombre}".`, {
+                    label: 'Deshacer',
+                    focusAfter: `[data-list-open="${list.id}"]`,
+                    run: () => setLists(prev => prev.some(l => l.id === list.id) ? prev : insertAt(prev, Math.min(index, prev.length), list))
+                });
             };
 
-            const handleAddTolist = (e) => {
+            // Ítems del inventario que todavía no están en la lista abierta
+            const disponibles = selectedList ? inventory.filter(inv => !selectedList.items.some(i => i.id === inv.id)) : [];
+
+            // Listas: agregar ítem con cantidad necesaria (CU-16)
+            const handleAddToList = (e) => {
                 e.preventDefault();
-                if (!itemToAddId || !selectedList) return;
-
+                if (!selectedList) return;
+                const errors = {};
                 const itemToAdd = inventory.find(i => i.id === Number(itemToAddId));
-                if (!itemToAdd) return;
-
-                // Validar si ya está en la lista (CU-16, E1)
-                const alreadyExists = selectedList.items.some(i => i.id === itemToAdd.id);
-                if (alreadyExists) {
-                    alert('Este ítem ya se encuentra agregado en esta lista.');
+                if (!itemToAddId) errors.item = 'Elige un material del inventario.';
+                else if (!itemToAdd) errors.item = 'Ese material ya no está en el inventario.';
+                // Ya está en la lista (CU-16, E1)
+                else if (selectedList.items.some(i => i.id === itemToAdd.id)) errors.item = `"${itemToAdd.nombre}" ya está en esta lista.`;
+                const qtyError = errorCantidad(needQty, 1);
+                if (qtyError) errors.cantidad = qtyError;
+                setAddErrors(errors);
+                if (Object.keys(errors).length) {
+                    enfocar(errors.item ? '#list-add' : '#list-need');
                     return;
                 }
 
-                const updatedItems = [...selectedList.items, { id: itemToAdd.id, nombre: itemToAdd.nombre }];
-                const updatedLists = lists.map(l => l.id === selectedList.id ? { ...l, items: updatedItems } : l);
-                
-                setLists(updatedLists);
-                setSelectedList({ ...selectedList, items: updatedItems });
+                const necesito = Number(needQty);
+                setLists(prev => prev.map(l => l.id === selectedList.id
+                    ? { ...l, items: [...l.items, { id: itemToAdd.id, cantidadNecesaria: necesito }] }
+                    : l));
                 setItemToAddId('');
+                setNeedQty('1');
+                const falta = Math.max(0, necesito - itemToAdd.cantidad);
+                showToast(falta ? `Agregaste "${itemToAdd.nombre}". Faltan ${fmt(falta)} en bodega.` : `Agregaste "${itemToAdd.nombre}". Hay suficiente en bodega.`);
+                enfocar('#list-add', '#list-title');
             };
 
-            const handleRemoveFromList = (itemId) => {
-                const updatedItems = selectedList.items.filter(i => i.id !== itemId);
-                const updatedLists = lists.map(l => l.id === selectedList.id ? { ...l, items: updatedItems } : l);
-                
-                setLists(updatedLists);
-                setSelectedList({ ...selectedList, items: updatedItems });
+            const saveNeed = (e) => {
+                e.preventDefault();
+                const error = errorCantidad(editingNeed.value, 1);
+                if (error) { setEditingNeed({ ...editingNeed, error }); return; }
+                const listId = selectedList.id;
+                const nueva = Number(editingNeed.value);
+                const item = inventory.find(i => i.id === editingNeed.id);
+                setLists(prev => prev.map(l => l.id === listId
+                    ? { ...l, items: l.items.map(i => i.id === editingNeed.id ? { ...i, cantidadNecesaria: nueva } : i) }
+                    : l));
+                enfocar(`[data-need="${editingNeed.id}"]`);
+                setEditingNeed(null);
+                if (item) showToast(`Ahora necesitas ${fmt(nueva)} de "${item.nombre}".`);
             };
 
-            // Pantalla de Login
+            const handleRemoveFromList = (fila) => {
+                const listId = selectedList.id;
+                const index = selectedList.items.findIndex(i => i.id === fila.id);
+                const entry = selectedList.items[index];
+                const ids = revisarLista(selectedList, inventory).filas.map(f => f.id);
+                const pos = ids.indexOf(fila.id);
+                const siguiente = ids[pos + 1] ?? ids[pos - 1];
+                setLists(prev => prev.map(l => l.id === listId ? { ...l, items: l.items.filter(i => i.id !== fila.id) } : l));
+                enfocar(`[data-quitar="${siguiente}"]`, '#list-add');
+                showToast(`Quitaste "${fila.nombre}" de la lista.`, {
+                    label: 'Deshacer',
+                    focusAfter: `[data-quitar="${fila.id}"]`,
+                    run: () => setLists(prev => prev.map(l => l.id === listId && !l.items.some(i => i.id === fila.id)
+                        ? { ...l, items: insertAt(l.items, Math.min(index, l.items.length), entry) }
+                        : l))
+                });
+            };
+
+            const toastEl = <Toasts toasts={toasts} onDismiss={dismissToast} />;
+
+            // ---------- Pantalla de inicio de sesión ----------
             if (!isLoggedIn) {
                 return (
-                    <div className="min-h-screen flex items-center justify-center bg-emerald-50 px-4">
-                        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-emerald-100 p-8">
-                            <div className="text-center mb-8">
-                                <div className="inline-block p-3 bg-emerald-100 text-emerald-700 rounded-full text-2xl mb-3 shadow-inner">🛠️</div>
-                                <h1 className="text-3xl font-extrabold text-emerald-900 tracking-tight">¿Hay materiales ?</h1>
-                                <p className="text-sm text-emerald-600 mt-1 font-medium">Sistema de control de inventario y proyectos</p>
+                    <div className="min-h-screen flex items-center justify-center bg-canvas px-4 py-10">
+                        <main className="max-w-sm w-full">
+                            <div className="flex items-center gap-3 mb-8">
+                                <span className="w-11 h-11 rounded-xl bg-brand text-action flex items-center justify-center">
+                                    <Icon name="llave" className="w-6 h-6" />
+                                </span>
+                                <div>
+                                    <h1 className="text-2xl font-extrabold text-ink tracking-tight leading-tight">¿Hay materiales?</h1>
+                                    <p className="text-sm text-muted">Inventario y listas del taller</p>
+                                </div>
                             </div>
 
-                            {errorMessage && (
-                                <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded-lg">{errorMessage}</div>
-                            )}
-
-                            <form onSubmit={handleLogin} className="space-y-5">
+                            <form onSubmit={handleLogin} noValidate className="bg-surface border border-line rounded-2xl p-6 space-y-5">
+                                {errorMessage && (
+                                    <div id="login-error" role="alert" className="flex gap-2 p-3 bg-err-soft border border-err-soft-hover text-err-strong text-sm rounded-xl">
+                                        <Icon name="alerta" className="w-5 h-5 shrink-0" />
+                                        <span>{errorMessage}</span>
+                                    </div>
+                                )}
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Usuario</label>
-                                    <input 
-                                        type="text" 
-                                        value={username} 
-                                        onChange={(e) => setUsername(e.target.value)} 
-                                        required 
-                                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500" 
-                                        placeholder="Ej. admin" 
+                                    <label htmlFor="login-user" className={ETIQUETA}>Usuario</label>
+                                    <input
+                                        id="login-user"
+                                        type="text"
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                        required
+                                        autoFocus
+                                        autoComplete="username"
+                                        autoCapitalize="none"
+                                        spellCheck="false"
+                                        maxLength={40}
+                                        aria-invalid={loginErrorField === 'user' || loginErrorField === 'both'}
+                                        aria-describedby={errorMessage ? 'login-error' : undefined}
+                                        className={`${CAMPO} ${borde(loginErrorField === 'user' || loginErrorField === 'both')}`}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Contraseña</label>
+                                    <label htmlFor="login-pass" className={ETIQUETA}>Contraseña</label>
                                     <div className="relative">
-                                        <input 
-                                            type={showPassword ? "text" : "password"} 
-                                            value={password} 
-                                            onChange={(e) => setPassword(e.target.value)} 
-                                            required 
-                                            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 pr-12" 
-                                            placeholder="••••••" 
+                                        <input
+                                            id="login-pass"
+                                            type={showPassword ? 'text' : 'password'}
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            required
+                                            autoComplete="current-password"
+                                            maxLength={64}
+                                            aria-invalid={loginErrorField === 'pass' || loginErrorField === 'both'}
+                                            aria-describedby={errorMessage ? 'login-error' : undefined}
+                                            className={`${CAMPO} ${borde(loginErrorField === 'pass' || loginErrorField === 'both')} pr-24`}
                                         />
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setShowPassword(!showPassword)} 
-                                            className="absolute inset-y-0 right-0 px-3.5 flex items-center text-xs font-semibold text-emerald-700 hover:text-emerald-900"
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            aria-pressed={showPassword}
+                                            className="absolute inset-y-0 right-0 px-3 my-1 mr-1 rounded-lg text-sm font-semibold text-link hover:bg-canvas"
                                         >
-                                            {showPassword ? "Ocultar" : "Ver"}
+                                            {showPassword ? 'Ocultar' : 'Mostrar'}
                                         </button>
                                     </div>
                                 </div>
-                                <button type="submit" className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg shadow-emerald-600/20">Iniciar Sesión</button>
+                                <button type="submit" className={`${BTN_PRIMARIO} w-full min-h-[2.75rem] text-base font-bold`}>Entrar</button>
                             </form>
-                            <div className="mt-6 text-center text-xs text-slate-400">Acceso de prueba: <b>admin</b> / <b>12345</b></div>
-                        </div>
+                            <p className="mt-4 text-center text-sm text-muted">Acceso de prueba: <b className="text-ink">admin</b> / <b className="text-ink">12345</b></p>
+                        </main>
+                        {toastEl}
                     </div>
                 );
             }
 
-            // Estructura Principal y Módulos
+            // ---------- Aplicación ----------
             return (
-                <div className="min-h-screen bg-emerald-50/50 flex flex-col">
-                    <header className="bg-white shadow-sm border-b border-emerald-100 px-6 py-4 flex justify-between items-center">
-                        <div>
-                            <h2 className="text-xl font-extrabold text-emerald-900 tracking-tight">¿Hay materiales ?</h2>
-                            <p className="text-xs text-emerald-600 font-medium">{welcomeMessage}</p>
+                <div className="min-h-screen bg-canvas flex flex-col">
+                    <a href="#contenido" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-surface focus:px-3 focus:py-2 focus:rounded-lg">Saltar al contenido</a>
+                    <header className="sticky top-0 z-30 bg-surface/95 backdrop-blur-md border-b border-line-strong">
+                        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-6 min-w-0">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                    <span className="w-9 h-9 rounded-xl bg-brand text-action flex items-center justify-center shrink-0">
+                                        <Icon name="llave" className="w-5 h-5" />
+                                    </span>
+                                    <p className="text-base sm:text-lg font-extrabold text-ink tracking-tight truncate">¿Hay materiales?</p>
+                                </div>
+                                <nav aria-label="Secciones" className="hidden sm:block">
+                                    <ul className="flex items-center gap-1 p-1 rounded-xl bg-canvas border border-line">
+                                        {PESTANAS.map(p => {
+                                            const activa = activeModule === p.id;
+                                            return (
+                                                <li key={p.id}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => goTo(p.id)}
+                                                        aria-current={activa ? 'page' : undefined}
+                                                        className={`btn-press flex items-center gap-2 min-h-[2.25rem] px-3.5 rounded-lg text-sm font-semibold ${activa ? 'bg-surface text-ink shadow-sm border border-line-strong' : 'text-ink-soft hover:text-ink hover:bg-surface/60 border border-transparent'}`}
+                                                    >
+                                                        <Icon name={p.icon} className={`w-[18px] h-[18px] ${activa ? 'text-link' : 'text-muted'}`} />
+                                                        {p.label}
+                                                    </button>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                </nav>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                                <span className="hidden md:inline text-sm text-muted">Hola, <b className="font-bold text-ink">{activeUser}</b></span>
+                                <button type="button" onClick={handleLogout} className={`${BTN_SECUNDARIO} px-3`}>
+                                    <Icon name="salir" className="w-4 h-4 text-muted" />
+                                    Salir
+                                </button>
+                            </div>
                         </div>
-                        <button onClick={handleLogout} className="bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-xl text-sm font-semibold transition">Cerrar Sesión</button>
+                        <nav aria-label="Secciones móvil" className="sm:hidden max-w-5xl mx-auto px-4 pb-2.5">
+                            <ul className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-canvas border border-line">
+                                {PESTANAS.map(p => {
+                                    const activa = activeModule === p.id;
+                                    return (
+                                        <li key={p.id}>
+                                            <button
+                                                type="button"
+                                                onClick={() => goTo(p.id)}
+                                                aria-current={activa ? 'page' : undefined}
+                                                className={`btn-press w-full flex items-center justify-center gap-1.5 min-h-[2.5rem] px-2 rounded-lg text-sm font-semibold ${activa ? 'bg-surface text-ink shadow-sm border border-line-strong' : 'text-ink-soft'}`}
+                                            >
+                                                <Icon name={p.icon} className={`w-4 h-4 ${activa ? 'text-link' : 'text-muted'}`} />
+                                                {p.label}
+                                            </button>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </nav>
                     </header>
 
-                    <main className="flex-1 max-w-4xl w-full mx-auto p-6 flex flex-col justify-center">
-                        
-                        {/* Menú Principal Vertical */}
-                        {activeModule === 'menu' && (
-                            <div className="bg-white rounded-2xl shadow-sm border border-emerald-100 p-8">
-                                <h3 className="text-xl font-bold text-slate-800 mb-6 text-center">Menú Principal</h3>
-                                <div className="flex flex-col space-y-4">
-                                    <div onClick={() => setActiveModule('almacenamiento')} className="flex items-center p-4 bg-emerald-50/50 hover:bg-emerald-100/60 border border-emerald-200/60 rounded-xl transition cursor-pointer group shadow-sm">
-                                        <div className="w-12 h-12 bg-emerald-600 text-white rounded-xl flex items-center justify-center text-xl font-bold mr-4 shadow-sm group-hover:scale-105 transition">📦</div>
-                                        <div className="flex-1">
-                                            <h4 className="text-base font-bold text-slate-800">Almacenamiento (Inventario)</h4>
-                                            <p className="text-xs text-slate-500">Gestionar herramientas, materiales y stock actual.</p>
-                                        </div>
-                                        <span className="text-emerald-600 font-bold text-lg px-2">→</span>
-                                    </div>
+                    <main id="contenido" ref={mainRef} className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 pt-8 pb-28 sm:pb-12">
 
-                                    <div onClick={() => setActiveModule('listas')} className="flex items-center p-4 bg-emerald-50/50 hover:bg-emerald-100/60 border border-emerald-200/60 rounded-xl transition cursor-pointer group shadow-sm">
-                                        <div className="w-12 h-12 bg-emerald-600 text-white rounded-xl flex items-center justify-center text-xl font-bold mr-4 shadow-sm group-hover:scale-105 transition">📋</div>
-                                        <div className="flex-1">
-                                            <h4 className="text-base font-bold text-slate-800">Listas de Materiales</h4>
-                                            <p className="text-xs text-slate-500">Crear listas de verificación y asignar ítems.</p>
-                                        </div>
-                                        <span className="text-emerald-600 font-bold text-lg px-2">→</span>
-                                    </div>
-
-                                    <div onClick={() => setActiveModule('proyectos')} className="flex items-center p-4 bg-emerald-50/50 hover:bg-emerald-100/60 border border-emerald-200/60 rounded-xl transition cursor-pointer group shadow-sm">
-                                        <div className="w-12 h-12 bg-emerald-600 text-white rounded-xl flex items-center justify-center text-xl font-bold mr-4 shadow-sm group-hover:scale-105 transition">📊</div>
-                                        <div className="flex-1">
-                                            <h4 className="text-base font-bold text-slate-800">Proyectos</h4>
-                                            <p className="text-xs text-slate-500">Administrar proyectos en curso, pendientes y progreso.</p>
-                                        </div>
-                                        <span className="text-emerald-600 font-bold text-lg px-2">→</span>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* MÓDULO DE ALMACENAMIENTO */}
-                        {activeModule === 'almacenamiento' && (
-                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100 w-full">
-                                <div className="flex justify-between items-center mb-6">
+                        {/* ---------- LISTAS DE MATERIALES (CU-14 al CU-18) ---------- */}
+                        {activeModule === 'listas' && !selectedList && (
+                            <section aria-labelledby="lists-title">
+                                <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
                                     <div>
-                                        <h3 className="text-xl font-bold text-slate-800">Almacenamiento e Inventario</h3>
-                                        <p className="text-xs text-slate-500">Gestión de herramientas y materiales del taller</p>
+                                        <h1 id="lists-title" tabIndex={-1} className="focus:outline-none text-2xl font-bold text-ink tracking-tight">Listas de materiales</h1>
+                                        <p className="mt-1 text-sm text-muted">Arma la lista de un trabajo y revisa si hay todo en bodega antes de empezar.</p>
                                     </div>
-                                    <button onClick={() => setActiveModule('menu')} className="text-sm text-emerald-600 font-semibold hover:underline">← Volver al Menú</button>
-                                </div>
-
-                                <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-                                    <input 
-                                        type="text" 
-                                        placeholder="Buscar por nombre..." 
-                                        value={searchTerm} 
-                                        onChange={(e) => setSearchTerm(e.target.value)} 
-                                        className="w-full md:w-1/3 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" 
-                                    />
-                                    <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-                                        <select 
-                                            value={filterCategory} 
-                                            onChange={(e) => setFilterCategory(e.target.value)} 
-                                            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                        >
-                                            <option value="Todos">Todas las categorías</option>
-                                            <option value="Herramienta">Solo Herramientas</option>
-                                            <option value="Material">Solo Materiales</option>
-                                        </select>
-                                        <button 
-                                            onClick={() => setShowAddModal(true)} 
-                                            className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20 whitespace-nowrap"
-                                        >
-                                            + Nuevo Ítem
+                                    {!showAddList && (
+                                        <button id="btn-add-list" type="button" onClick={() => setShowAddList(true)} className={BTN_PRIMARIO}>
+                                            <Icon name="mas" className="w-4 h-4" strokeWidth={2.2} /> Nueva lista
                                         </button>
-                                    </div>
+                                    )}
                                 </div>
 
-                                {showAddModal && (
-                                    <div className="mb-6 p-5 bg-emerald-50/80 border border-emerald-200 rounded-2xl">
-                                        <h4 className="text-sm font-bold text-emerald-900 mb-3">Registrar Nueva Herramienta o Material</h4>
-                                        <form onSubmit={handleAddItem} className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                                            <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className="px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white">
-                                                <option value="Herramienta">Herramienta</option>
-                                                <option value="Material">Material</option>
-                                            </select>
-                                            <input type="text" placeholder="Nombre" value={newName} onChange={(e) => setNewName(e.target.value)} required className="px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white" />
-                                            <input type="text" placeholder="Ubicación (Ej. Estante A)" value={newLocation} onChange={(e) => setNewLocation(e.target.value)} required className="px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white" />
-                                            <input type="number" placeholder="Cantidad" min="0" value={newQuantity} onChange={(e) => setNewQuantity(e.target.value)} required className="px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white" />
-                                            <div className="md:col-span-4 flex justify-end gap-2 mt-2">
-                                                <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 bg-gray-200 text-slate-700 rounded-xl text-xs font-semibold">Cancelar</button>
-                                                <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700">Guardar Ítem</button>
+                                {showAddList && (
+                                    <form onSubmit={handleCreateList} noValidate onKeyDown={(e) => e.key === 'Escape' && closeAddList()} className="panel-enter mb-6 p-4 bg-surface border border-line-strong rounded-2xl">
+                                        <label htmlFor="list-name" className={ETIQUETA}>Nombre de la lista</label>
+                                        <div className="flex flex-col sm:flex-row gap-3">
+                                            <div className="flex-1 min-w-0">
+                                                <input
+                                                    id="list-name"
+                                                    ref={listNameRef}
+                                                    type="text"
+                                                    placeholder="Ej. Mueble de baño"
+                                                    value={newListName}
+                                                    onChange={(e) => { setNewListName(e.target.value); setListNameError(''); }}
+                                                    maxLength={60}
+                                                    aria-invalid={!!listNameError}
+                                                    aria-describedby={listNameError ? 'list-name-err' : undefined}
+                                                    className={`${CAMPO} ${borde(listNameError)}`}
+                                                />
+                                                <FieldError id="list-name-err">{listNameError}</FieldError>
                                             </div>
-                                        </form>
-                                    </div>
+                                            <div className="flex gap-2 self-start">
+                                                <button type="button" onClick={closeAddList} className={BTN_SECUNDARIO}>Cancelar</button>
+                                                <button type="submit" className={BTN_PRIMARIO}>Crear lista</button>
+                                            </div>
+                                        </div>
+                                    </form>
                                 )}
 
-                                <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                                {lists.length > 0 ? (
+                                    <ul className="bg-surface border border-line rounded-2xl divide-y divide-line">
+                                        {lists.map(list => {
+                                            const r = revisarLista(list, inventory);
+                                            return (
+                                                <li key={list.id} className="hover-row relative flex items-center gap-4 p-4">
+                                                    <div className="flex-1 min-w-0">
+                                                        <h2 className="text-base font-bold text-ink [overflow-wrap:anywhere]">
+                                                            <button type="button" data-list-open={list.id} onClick={() => openList(list.id)} className="text-left hover:text-link focus-visible:outline-none after:absolute after:inset-0 after:rounded-[inherit] focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:outline-[var(--link)] focus-visible:after:-outline-offset-2">
+                                                                {list.nombre}
+                                                            </button>
+                                                        </h2>
+                                                        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                                            <ResumenBadge revision={r} />
+                                                            <p className="text-sm text-muted [overflow-wrap:anywhere]">
+                                                                {r.filas.length === 0 ? 'Agrega materiales para revisar.'
+                                                                    : r.lista ? `Hay todo en bodega (${plural(r.filas.length, 'material', 'materiales')}).`
+                                                                    : textoFaltantes(r.faltantes)}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <button type="button" onClick={() => handleDeleteList(list)} className={`${BTN_PELIGRO} relative z-10 max-sm:w-10 max-sm:px-0`} aria-label={`Eliminar lista ${list.nombre}`}>
+                                                        <Icon name="basura" className="w-4 h-4" /><span className="hidden sm:inline">Eliminar</span>
+                                                    </button>
+                                                    <span className="text-muted" aria-hidden="true"><Icon name="flechaDer" className="w-5 h-5" /></span>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
+                                ) : !showAddList && (
+                                    <div className="border border-dashed border-line-strong rounded-2xl p-10 text-center">
+                                        <p className="text-base font-semibold text-ink">Todavía no tienes listas</p>
+                                        <p className="mt-1 text-sm text-muted">Crea una por trabajo (por ejemplo, "Mueble de cocina") y te diremos si hay todo en bodega.</p>
+                                        <button type="button" onClick={() => setShowAddList(true)} className={`${BTN_PRIMARIO} mt-5`}>
+                                            <Icon name="mas" className="w-4 h-4" strokeWidth={2.2} /> Crear la primera lista
+                                        </button>
+                                    </div>
+                                )}
+                            </section>
+                        )}
+
+                        {/* Detalle de una lista: la respuesta a "¿hay materiales?" */}
+                        {activeModule === 'listas' && selectedList && (() => {
+                            const r = revisarLista(selectedList, inventory);
+                            return (
+                                <section aria-labelledby="list-title">
+                                    <button type="button" onClick={closeList} className={`${ENLACE} mb-3`}>
+                                        <Icon name="flechaIzq" className="w-4 h-4" strokeWidth={2.2} /> Todas las listas
+                                    </button>
+                                    {editingListTitle ? (
+                                        <form onSubmit={saveListTitle} noValidate onKeyDown={(e) => e.key === 'Escape' && cancelListTitle()} className="mb-2">
+                                            <label htmlFor="edit-list-title" className="sr-only">Nombre de la lista</label>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <input id="edit-list-title" type="text" autoFocus maxLength={60} value={editingListTitle.value} onChange={(e) => setEditingListTitle({ value: e.target.value, error: '' })} aria-invalid={!!editingListTitle.error} aria-describedby={editingListTitle.error ? 'edit-list-title-err' : undefined} className={`max-w-md ${CAMPO} ${borde(editingListTitle.error)} font-bold text-lg`} />
+                                                <button type="submit" className={BTN_PRIMARIO}>Guardar nombre</button>
+                                                <button type="button" onClick={cancelListTitle} className={BTN_SECUNDARIO}>Cancelar</button>
+                                            </div>
+                                            <FieldError id="edit-list-title-err">{editingListTitle.error}</FieldError>
+                                        </form>
+                                    ) : (
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <h1 id="list-title" tabIndex={-1} className="text-2xl font-bold text-ink tracking-tight [overflow-wrap:anywhere] focus:outline-none">{selectedList.nombre}</h1>
+                                            <button id="btn-rename-list" type="button" onClick={() => setEditingListTitle({ value: selectedList.nombre, error: '' })} aria-label={`Cambiar nombre de la lista ${selectedList.nombre}`} className="inline-flex items-center gap-1 min-h-[2.25rem] px-2.5 rounded-lg text-xs font-semibold text-muted hover:text-ink hover:bg-surface border border-transparent hover:border-line-strong">
+                                                <Icon name="lapiz" className="w-3.5 h-3.5" /> Renombrar
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* Veredicto */}
+                                    <div role="status" className={`mt-4 mb-8 flex items-start gap-3 sm:gap-4 p-5 sm:p-6 rounded-2xl border ${r.filas.length === 0 ? 'bg-surface border-line' : r.lista ? 'bg-ok-soft border-[oklch(0.85_0.07_155)]' : 'bg-err-soft border-err-soft-hover'}`}>
+                                        {r.filas.length === 0 ? (
+                                            <>
+                                                <span className="text-muted mt-0.5"><Icon name="lista" className="w-6 h-6" /></span>
+                                                <div>
+                                                    <p className="text-lg sm:text-xl font-bold text-ink tracking-tight">Esta lista está vacía</p>
+                                                    <p className="text-sm text-ink-soft">Agrega los materiales del trabajo y cuánto necesitas de cada uno.</p>
+                                                </div>
+                                            </>
+                                        ) : r.lista ? (
+                                            <>
+                                                <span className="text-ok mt-0.5"><Icon name="check" className="w-6 h-6" strokeWidth={2.4} /></span>
+                                                <div>
+                                                    <p className="text-lg sm:text-xl font-bold text-ok tracking-tight">Sí, hay materiales. Puedes empezar.</p>
+                                                    <p className="text-sm text-ink-soft">{r.filas.length === 1 ? 'En bodega hay suficiente del único material de esta lista.' : `En bodega hay suficiente de los ${fmt(r.filas.length)} materiales de esta lista.`}</p>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span className="text-err-strong mt-0.5"><Icon name="alerta" className="w-6 h-6" strokeWidth={2.2} /></span>
+                                                <div>
+                                                    <p className="text-lg sm:text-xl font-bold text-err-strong tracking-tight">
+                                                        Todavía no. {r.faltantes.length === 1 ? 'Falta 1 material' : `Faltan ${fmt(r.faltantes.length)} materiales`}.
+                                                    </p>
+                                                    <p className="text-sm text-ink-soft [overflow-wrap:anywhere]">
+                                                        {r.faltantes.map(f => `${f.nombre} (faltan ${fmt(f.falta)})`).join(' · ')}
+                                                    </p>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+
+                                    {/* Agregar material con cantidad necesaria */}
+                                    <form onSubmit={handleAddToList} noValidate className="mb-6">
+                                        <h2 className="text-base font-bold text-ink mb-3">Agregar a la lista</h2>
+                                        {disponibles.length > 0 ? (
+                                            <div className="grid grid-cols-1 sm:grid-cols-[1fr_8rem_auto] gap-3 items-start">
+                                                <div className="min-w-0">
+                                                    <label htmlFor="list-add" className={ETIQUETA}>Material o herramienta</label>
+                                                    <select
+                                                        id="list-add"
+                                                        value={itemToAddId}
+                                                        onChange={(e) => { setItemToAddId(e.target.value); setAddErrors({ ...addErrors, item: '' }); }}
+                                                        aria-invalid={!!addErrors.item}
+                                                        aria-describedby={addErrors.item ? 'list-add-err' : undefined}
+                                                        className={`${CAMPO} ${borde(addErrors.item)}`}
+                                                    >
+                                                        <option value="">Elige del inventario…</option>
+                                                        {disponibles.map(inv => (
+                                                            <option key={inv.id} value={inv.id}>{inv.nombre} · {inv.categoria.toLowerCase()} ({fmt(inv.cantidad)} en bodega)</option>
+                                                        ))}
+                                                    </select>
+                                                    <FieldError id="list-add-err">{addErrors.item}</FieldError>
+                                                </div>
+                                                <div>
+                                                    <label htmlFor="list-need" className={ETIQUETA}>Necesito</label>
+                                                    <input
+                                                        id="list-need"
+                                                        type="number" inputMode="numeric" min="1" max={CANTIDAD_MAX} step="1" onWheel={sinRueda}
+                                                        value={needQty}
+                                                        onChange={(e) => { setNeedQty(e.target.value); setAddErrors({ ...addErrors, cantidad: '' }); }}
+                                                        aria-invalid={!!addErrors.cantidad}
+                                                        aria-describedby={addErrors.cantidad ? 'list-need-err' : undefined}
+                                                        className={`${CAMPO} ${borde(addErrors.cantidad)}`}
+                                                    />
+                                                    <FieldError id="list-need-err">{addErrors.cantidad}</FieldError>
+                                                </div>
+                                                <button type="submit" className={`${BTN_PRIMARIO} sm:mt-6`}>Agregar</button>
+                                            </div>
+                                        ) : (
+                                            <p className="text-sm text-muted">
+                                                {inventory.length === 0
+                                                    ? <>El inventario está vacío. <button type="button" onClick={() => { goTo('inventario'); setShowAddItem(true); }} className={ENLACE}>Registra materiales</button> para poder agregarlos.</>
+                                                    : 'Ya agregaste todos los materiales del inventario a esta lista.'}
+                                            </p>
+                                        )}
+                                    </form>
+
+                                    {r.filas.length > 0 && (
+                                        <div className="relative overflow-x-auto bg-surface border border-line rounded-2xl">
+                                            <table className="w-full text-left border-collapse">
+                                                <caption className="sr-only">Materiales de la lista {selectedList.nombre}: cuánto necesitas, cuánto hay y cuánto falta</caption>
+                                                <thead>
+                                                    <tr className="text-sm text-muted border-b border-line">
+                                                        <th scope="col" className="px-4 py-3 font-semibold">Material o herramienta</th>
+                                                        <th scope="col" className="px-4 py-3 font-semibold text-right">Necesito</th>
+                                                        <th scope="col" className="px-4 py-3 font-semibold text-right">Hay</th>
+                                                        <th scope="col" className="hidden sm:table-cell px-4 py-3 font-semibold">Estado</th>
+                                                        <th scope="col" className="px-2 sm:px-4 py-3"><span className="sr-only">Acciones</span></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-line text-sm text-ink-soft">
+                                                    {r.filas.map(f => (
+                                                        <React.Fragment key={f.id}>
+                                                        <tr className={editingNeed && editingNeed.id === f.id && angosta ? 'border-b-0' : ''}>
+                                                            <th scope="row" className="px-4 py-3 font-semibold text-ink min-w-[8rem] [overflow-wrap:anywhere]">
+                                                                {f.nombre}
+                                                                <span className="block text-xs font-mono text-muted mt-0.5">{f.ubicacion}</span>
+                                                                <span className="sm:hidden flex flex-wrap items-center gap-2 mt-1.5">
+                                                                    {f.falta > 0 ? (
+                                                                        <>
+                                                                            <Badge cls="bg-err-soft text-err-strong" icon="alerta">Faltan {fmt(f.falta)}</Badge>
+                                                                            <button type="button" onClick={() => jumpToInventoryItem(f)} className="text-xs font-semibold text-link underline underline-offset-2">Ajustar en bodega →</button>
+                                                                        </>
+                                                                    ) : (
+                                                                        <Badge cls="bg-ok-soft text-ok" icon="check">Alcanza</Badge>
+                                                                    )}
+                                                                </span>
+                                                            </th>
+                                                            <td className="px-2 sm:px-4 py-3 text-right whitespace-nowrap">
+                                                                {editingNeed && editingNeed.id === f.id && !angosta ? (
+                                                                    <EditorCantidad id={`need-${f.id}`} label={`Cuánto necesitas de ${f.nombre}`} min="1" value={editingNeed.value} error={editingNeed.error} onChange={(e) => setEditingNeed({ ...editingNeed, value: e.target.value, error: '' })} onSubmit={saveNeed} onCancel={cancelNeed} />
+                                                                ) : (
+                                                                    <button type="button" data-need={f.id} onClick={() => setEditingNeed({ id: f.id, value: String(f.necesito), error: '' })} aria-label={`Cambiar cuánto necesitas de ${f.nombre}: ${f.necesito}`} className="inline-flex items-center gap-1.5 font-mono font-bold text-ink min-h-[2.5rem] px-2 -mr-2 rounded-lg hover:bg-action-soft hover:text-link">
+                                                                        {fmt(f.necesito)}
+                                                                        <Icon name="lapiz" className="w-3.5 h-3.5 text-muted" />
+                                                                    </button>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-2 sm:px-4 py-3 text-right font-mono font-semibold text-ink">{fmt(f.cantidad)}</td>
+                                                            <td className="hidden sm:table-cell px-4 py-3">
+                                                                {f.falta > 0 ? (
+                                                                    <div className="flex flex-wrap items-center gap-2">
+                                                                        <Badge cls="bg-err-soft text-err-strong" icon="alerta">Faltan {fmt(f.falta)}</Badge>
+                                                                        <button type="button" onClick={() => jumpToInventoryItem(f)} className="text-xs font-semibold text-link hover:text-link-hover underline underline-offset-4">Ajustar en bodega →</button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <Badge cls="bg-ok-soft text-ok" icon="check">Alcanza</Badge>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-2 sm:px-4 py-3 text-right">
+                                                                <button type="button" data-quitar={f.id} onClick={() => handleRemoveFromList(f)} aria-label={`Quitar ${f.nombre} de la lista`} className={`${BTN_PELIGRO} max-sm:w-10 max-sm:px-0`}><Icon name="x" className="w-4 h-4" strokeWidth={2.2} /><span className="hidden sm:inline">Quitar</span></button>
+                                                            </td>
+                                                        </tr>
+                                                        {editingNeed && editingNeed.id === f.id && angosta && (
+                                                            <tr className="bg-canvas">
+                                                                <td colSpan="5" className="px-4 pb-4 pt-1">
+                                                                    <EditorCantidad apilado id={`need-${f.id}`} label={`Cuánto necesitas de ${f.nombre}`} min="1" value={editingNeed.value} error={editingNeed.error} onChange={(e) => setEditingNeed({ ...editingNeed, value: e.target.value, error: '' })} onSubmit={saveNeed} onCancel={cancelNeed} />
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                        </React.Fragment>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                    {r.filas.length > 0 && (
+                                        <p className="mt-3 text-sm text-muted">Toca una cantidad <Icon name="lapiz" className="inline w-3.5 h-3.5 -mt-0.5" /> para cambiar cuánto necesitas en este trabajo.</p>
+                                    )}
+                                </section>
+                            );
+                        })()}
+
+                        {/* ---------- INVENTARIO (CU-04 al CU-13) ---------- */}
+                        {activeModule === 'inventario' && (
+                            <section aria-labelledby="inv-title">
+                                <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+                                    <div>
+                                        <h1 id="inv-title" tabIndex={-1} className="focus:outline-none text-2xl font-bold text-ink tracking-tight">Inventario</h1>
+                                        <p className="mt-1 text-sm text-muted">
+                                            {plural(inventory.length, 'ítem', 'ítems')} en bodega{conStockBajo > 0 && <> · <button type="button" onClick={() => setFilterCategory('Bajo')} className="font-semibold text-warn underline underline-offset-4 decoration-dotted">{fmt(conStockBajo)} con stock bajo o agotado</button></>}
+                                        </p>
+                                    </div>
+                                    {!showAddItem && (
+                                        <button id="btn-add-item" type="button" onClick={() => setShowAddItem(true)} className={BTN_PRIMARIO}>
+                                            <Icon name="mas" className="w-4 h-4" strokeWidth={2.2} /> Registrar ítem
+                                        </button>
+                                    )}
+                                </div>
+
+                                {showAddItem && (
+                                    <form onSubmit={handleAddItem} noValidate onKeyDown={(e) => e.key === 'Escape' && closeAddItem()} className="panel-enter mb-6 p-4 sm:p-5 bg-surface border border-line-strong rounded-2xl">
+                                        <h2 className="text-base font-bold text-ink mb-3">Registrar herramienta o material</h2>
+                                        <div className="grid grid-cols-1 md:grid-cols-[10rem_1fr_12rem_8rem] gap-3 items-start">
+                                            <div>
+                                                <label htmlFor="item-cat" className={ETIQUETA}>Categoría</label>
+                                                <select id="item-cat" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className={`${CAMPO} ${borde(false)}`}>
+                                                    <option value="Herramienta">Herramienta</option>
+                                                    <option value="Material">Material</option>
+                                                </select>
+                                            </div>
+                                            <div className="min-w-0">
+                                                <label htmlFor="item-name" className={ETIQUETA}>Nombre</label>
+                                                <input id="item-name" ref={firstItemFieldRef} type="text" placeholder="Ej. Lija grano 80" value={newName} onChange={(e) => { setNewName(e.target.value); setItemErrors({ ...itemErrors, nombre: '' }); }} maxLength={80} aria-invalid={!!itemErrors.nombre} aria-describedby={itemErrors.nombre ? 'item-name-err' : undefined} className={`${CAMPO} ${borde(itemErrors.nombre)}`} />
+                                                <FieldError id="item-name-err">{itemErrors.nombre}</FieldError>
+                                            </div>
+                                            <div>
+                                                <label htmlFor="item-loc" className={ETIQUETA}>Ubicación</label>
+                                                <input id="item-loc" type="text" placeholder="Ej. Estante A-1" value={newLocation} onChange={(e) => { setNewLocation(e.target.value); setItemErrors({ ...itemErrors, ubicacion: '' }); }} maxLength={40} aria-invalid={!!itemErrors.ubicacion} aria-describedby={itemErrors.ubicacion ? 'item-loc-err' : undefined} className={`${CAMPO} ${borde(itemErrors.ubicacion)}`} />
+                                                <FieldError id="item-loc-err">{itemErrors.ubicacion}</FieldError>
+                                            </div>
+                                            <div>
+                                                <label htmlFor="item-qty" className={ETIQUETA}>Cantidad</label>
+                                                <input id="item-qty" type="number" inputMode="numeric" placeholder="0" min="0" max={CANTIDAD_MAX} step="1" onWheel={sinRueda} value={newQuantity} onChange={(e) => { setNewQuantity(e.target.value); setItemErrors({ ...itemErrors, cantidad: '' }); }} aria-invalid={!!itemErrors.cantidad} aria-describedby={itemErrors.cantidad ? 'item-qty-err' : undefined} className={`${CAMPO} ${borde(itemErrors.cantidad)}`} />
+                                                <FieldError id="item-qty-err">{itemErrors.cantidad}</FieldError>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-end gap-2 mt-4">
+                                            <button type="button" onClick={closeAddItem} className={BTN_SECUNDARIO}>Cancelar</button>
+                                            <button type="submit" className={BTN_PRIMARIO}>Guardar ítem</button>
+                                        </div>
+                                    </form>
+                                )}
+
+                                <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                                    <div className="relative flex-1 sm:max-w-sm">
+                                        <label htmlFor="inv-search" className="sr-only">Buscar por nombre o ubicación</label>
+                                        <span className="absolute left-3 inset-y-0 flex items-center text-muted pointer-events-none"><Icon name="buscar" className="w-4 h-4" /></span>
+                                        <input
+                                            id="inv-search"
+                                            ref={searchRef}
+                                            type="search"
+                                            placeholder="Buscar por nombre o ubicación"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            maxLength={80}
+                                            aria-keyshortcuts="/"
+                                            className={`${CAMPO} ${borde(false)} pl-9 pr-9`}
+                                        />
+                                        {searchTerm ? (
+                                            <button type="button" onClick={() => { setSearchTerm(''); searchRef.current?.focus(); }} aria-label="Borrar búsqueda" className="absolute right-1 inset-y-0 my-auto w-9 h-9 rounded-lg flex items-center justify-center text-muted hover:text-ink hover:bg-canvas">
+                                                <Icon name="x" className="w-4 h-4" strokeWidth={2} />
+                                            </button>
+                                        ) : (
+                                            <kbd className="hidden md:flex absolute right-2.5 inset-y-0 my-auto h-6 items-center px-1.5 rounded border border-line-strong text-xs font-mono text-muted pointer-events-none" aria-hidden="true">/</kbd>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label htmlFor="inv-filter" className="sr-only">Filtrar</label>
+                                        <select id="inv-filter" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className={`${CAMPO} ${borde(false)} sm:w-auto`}>
+                                            <option value="Todos">Todas las categorías</option>
+                                            <option value="Herramienta">Solo herramientas</option>
+                                            <option value="Material">Solo materiales</option>
+                                            <option value="Bajo">Stock bajo o agotado</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {editingItem && (
+                                    <form onSubmit={saveItemDetails} noValidate onKeyDown={(e) => e.key === 'Escape' && cancelEditItem()} className="panel-enter mb-4 p-4 sm:p-5 bg-surface border border-line-strong rounded-2xl">
+                                        <h2 className="text-base font-bold text-ink mb-3">Editar datos del ítem</h2>
+                                        <div className="grid grid-cols-1 md:grid-cols-[10rem_1fr_12rem] gap-3 items-start">
+                                            <div>
+                                                <label htmlFor={`edit-cat-${editingItem.id}`} className={ETIQUETA}>Categoría</label>
+                                                <select id={`edit-cat-${editingItem.id}`} value={editingItem.categoria} onChange={(e) => setEditingItem({ ...editingItem, categoria: e.target.value })} className={`${CAMPO} ${borde(false)}`}>
+                                                    <option value="Herramienta">Herramienta</option>
+                                                    <option value="Material">Material</option>
+                                                </select>
+                                            </div>
+                                            <div className="min-w-0">
+                                                <label htmlFor={`edit-name-${editingItem.id}`} className={ETIQUETA}>Nombre</label>
+                                                <input id={`edit-name-${editingItem.id}`} type="text" autoFocus maxLength={80} value={editingItem.nombre} onChange={(e) => setEditingItem({ ...editingItem, nombre: e.target.value, errors: { ...editingItem.errors, nombre: '' } })} aria-invalid={!!editingItem.errors?.nombre} aria-describedby={editingItem.errors?.nombre ? `edit-name-err-${editingItem.id}` : undefined} className={`${CAMPO} ${borde(editingItem.errors?.nombre)}`} />
+                                                <FieldError id={`edit-name-err-${editingItem.id}`}>{editingItem.errors?.nombre}</FieldError>
+                                            </div>
+                                            <div>
+                                                <label htmlFor={`edit-loc-${editingItem.id}`} className={ETIQUETA}>Ubicación</label>
+                                                <input id={`edit-loc-${editingItem.id}`} type="text" maxLength={40} value={editingItem.ubicacion} onChange={(e) => setEditingItem({ ...editingItem, ubicacion: e.target.value, errors: { ...editingItem.errors, ubicacion: '' } })} aria-invalid={!!editingItem.errors?.ubicacion} aria-describedby={editingItem.errors?.ubicacion ? `edit-loc-err-${editingItem.id}` : undefined} className={`${CAMPO} ${borde(editingItem.errors?.ubicacion)}`} />
+                                                <FieldError id={`edit-loc-err-${editingItem.id}`}>{editingItem.errors?.ubicacion}</FieldError>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-end gap-2 mt-4">
+                                            <button type="button" onClick={cancelEditItem} className={BTN_SECUNDARIO}>Cancelar</button>
+                                            <button type="submit" className={BTN_PRIMARIO}>Guardar cambios</button>
+                                        </div>
+                                    </form>
+                                )}
+
+                                <div className="relative overflow-x-auto bg-surface border border-line rounded-2xl">
                                     <table className="w-full text-left border-collapse">
+                                        <caption className="sr-only">Inventario del taller: se muestran {filteredInventory.length} de {inventory.length} ítems</caption>
                                         <thead>
-                                            <tr className="bg-slate-50 text-slate-700 text-xs uppercase font-semibold border-b border-slate-200">
-                                                <th className="p-3">Categoría</th>
-                                                <th className="p-3">Nombre</th>
-                                                <th className="p-3">Ubicación Física</th>
-                                                <th className="p-3">Cantidad</th>
-                                                <th className="p-3 text-center">Acciones</th>
+                                            <tr className="text-sm text-muted border-b border-line">
+                                                <th scope="col" aria-sort={ariaSort('nombre')} className="pl-3 pr-2 sm:px-4 py-1.5">
+                                                    <button type="button" onClick={() => toggleSort('nombre')} className={`inline-flex items-center gap-1 min-h-[2.5rem] font-semibold hover:text-ink ${sort.col === 'nombre' ? 'text-ink' : ''}`}>
+                                                        Nombre
+                                                        <Icon name={sort.col === 'nombre' ? (sort.dir === 'asc' ? 'ordenAsc' : 'ordenDesc') : 'orden'} className={`w-4 h-4 ${sort.col === 'nombre' ? 'text-link' : 'opacity-40'}`} strokeWidth={2.2} />
+                                                    </button>
+                                                </th>
+                                                <th scope="col" className="hidden md:table-cell px-4 py-3 font-semibold">Categoría</th>
+                                                <th scope="col" className="hidden sm:table-cell px-4 py-3 font-semibold">Ubicación</th>
+                                                <th scope="col" aria-sort={ariaSort('cantidad')} className="px-2 sm:px-4 py-1.5 text-right">
+                                                    <button type="button" onClick={() => toggleSort('cantidad')} className={`inline-flex items-center gap-1 min-h-[2.5rem] font-semibold hover:text-ink ${sort.col === 'cantidad' ? 'text-ink' : ''}`}>
+                                                        <><span className="sm:hidden">Hay</span><span className="hidden sm:inline">En bodega</span></>
+                                                        <Icon name={sort.col === 'cantidad' ? (sort.dir === 'asc' ? 'ordenAsc' : 'ordenDesc') : 'orden'} className={`w-4 h-4 ${sort.col === 'cantidad' ? 'text-link' : 'opacity-40'}`} strokeWidth={2.2} />
+                                                    </button>
+                                                </th>
+                                                <th scope="col" className="hidden sm:table-cell px-2 sm:px-4 py-3 font-semibold">Estado</th>
+                                                <th scope="col" className="px-2 sm:px-4 py-3"><span className="sr-only">Acciones</span></th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-100 text-sm text-slate-600">
-                                            {filteredInventory.length > 0 ? (
-                                                filteredInventory.map(item => (
-                                                    <tr key={item.id} className="hover:bg-slate-50/50 transition">
-                                                        <td className="p-3">
-                                                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${item.categoria === 'Herramienta' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>{item.categoria}</span>
+                                        <tbody className="divide-y divide-line text-sm text-ink-soft">
+                                            {sortedInventory.length > 0 ? (
+                                                sortedInventory.map(item => (
+                                                    <React.Fragment key={item.id}>
+                                                    <tr>
+                                                        <th scope="row" className="pl-3 pr-2 sm:px-4 py-3 font-semibold text-ink min-w-[7rem] max-w-[18rem] [overflow-wrap:anywhere]">
+                                                            {item.nombre}
+                                                            <span className="sm:hidden block text-xs font-mono font-normal text-muted mt-0.5">{item.ubicacion}</span>
+                                                            <span className="sm:hidden block mt-1.5"><StockBadge cantidad={item.cantidad} /></span>
+                                                        </th>
+                                                        <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap">{item.categoria}</td>
+                                                        <td className="hidden sm:table-cell px-4 py-3 min-w-[7rem] max-w-[12rem] font-mono text-xs text-ink-soft [overflow-wrap:anywhere]">{item.ubicacion}</td>
+                                                        <td className="px-2 sm:px-4 py-3 text-right whitespace-nowrap">
+                                                            {editing && editing.id === item.id && !angosta ? (
+                                                                <EditorCantidad id={`qty-${item.id}`} label={`Cantidad en bodega de ${item.nombre}`} min="0" value={editing.value} error={editing.error} onChange={(e) => setEditing({ ...editing, value: e.target.value, error: '' })} onSubmit={saveEdit} onCancel={cancelEdit} />
+                                                            ) : (
+                                                                <button type="button" data-qty={item.id} onClick={() => setEditing({ id: item.id, value: String(item.cantidad), error: '' })} aria-label={`Ajustar cantidad de ${item.nombre}: ${item.cantidad}`} className="inline-flex items-center gap-1.5 font-mono font-bold text-ink min-h-[2.5rem] px-2 -mr-2 rounded-lg hover:bg-action-soft hover:text-link">
+                                                                    {fmt(item.cantidad)}
+                                                                    <Icon name="lapiz" className="w-3.5 h-3.5 text-muted" />
+                                                                </button>
+                                                            )}
                                                         </td>
-                                                        <td className="p-3 font-medium text-slate-800">{item.nombre}</td>
-                                                        <td className="p-3">{item.ubicacion}</td>
-                                                        <td className="p-3 font-bold text-slate-700">{item.cantidad}</td>
-                                                        <td className="p-3 text-center">
-                                                            <button onClick={() => handleDeleteItem(item.id, item.nombre)} className="text-red-500 hover:text-red-700 text-xs font-semibold px-2 py-1 bg-red-50 rounded-lg">Eliminar</button>
+                                                        <td className="hidden sm:table-cell px-2 sm:px-4 py-3"><StockBadge cantidad={item.cantidad} /></td>
+                                                        <td className="px-2 sm:px-4 py-3 text-right whitespace-nowrap">
+                                                            <div className="inline-flex items-center justify-end gap-1">
+                                                                <button type="button" data-edit-item={item.id} onClick={() => setEditingItem({ id: item.id, categoria: item.categoria, nombre: item.nombre, ubicacion: item.ubicacion, errors: {} })} aria-label={`Editar datos de ${item.nombre}`} className={`${BTN} px-2.5 text-muted hover:text-ink hover:bg-canvas max-sm:w-9 max-sm:px-0`}>
+                                                                    <Icon name="lapiz" className="w-4 h-4" /><span className="hidden lg:inline">Editar</span>
+                                                                </button>
+                                                                <button type="button" onClick={() => handleDeleteItem(item)} aria-label={`Eliminar ${item.nombre}`} data-del={item.id} className={`${BTN_PELIGRO} max-sm:w-9 max-sm:px-0`}><Icon name="basura" className="w-4 h-4" /><span className="hidden sm:inline">Eliminar</span></button>
+                                                            </div>
                                                         </td>
                                                     </tr>
+                                                    {editing && editing.id === item.id && angosta && (
+                                                        <tr className="bg-canvas">
+                                                            <td colSpan="6" className="px-3 pb-4 pt-1">
+                                                                <EditorCantidad apilado id={`qty-${item.id}`} label={`Cantidad en bodega de ${item.nombre}`} min="0" value={editing.value} error={editing.error} onChange={(e) => setEditing({ ...editing, value: e.target.value, error: '' })} onSubmit={saveEdit} onCancel={cancelEdit} />
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                    </React.Fragment>
                                                 ))
                                             ) : (
-                                                <tr><td colSpan="5" className="p-6 text-center text-slate-400 text-sm">No se encontraron registros.</td></tr>
+                                                <tr><td colSpan="6" className="px-4 py-10 text-center text-sm text-muted">
+                                                    {inventory.length === 0 ? (
+                                                        <>La bodega está vacía. <button type="button" onClick={() => setShowAddItem(true)} className={ENLACE}>Registra el primer ítem</button></>
+                                                    ) : (
+                                                        <>Nada coincide con {descripcionFiltro}. {hayFiltros && <button type="button" onClick={() => { setSearchTerm(''); setFilterCategory('Todos'); }} className={ENLACE}>Limpiar búsqueda</button>}</>
+                                                    )}
+                                                </td></tr>
                                             )}
                                         </tbody>
                                     </table>
                                 </div>
-                            </div>
+                                <p className="mt-3 text-sm text-muted">Toca una cantidad <Icon name="lapiz" className="inline w-3.5 h-3.5 -mt-0.5" /> para ajustarla. "Bajo" significa {STOCK_BAJO} unidades o menos.</p>
+                            </section>
                         )}
 
-                        {/* MÓDULO DE LISTAS DE MATERIALES (CU-14 al CU-18) */}
-                        {activeModule === 'listas' && (
-                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100 w-full">
-                                <div className="flex justify-between items-center mb-6">
-                                    <div>
-                                        <h3 className="text-xl font-bold text-slate-800">Listas de Materiales</h3>
-                                        <p className="text-xs text-slate-500">Creación de listas de verificación y asignación de ítems</p>
-                                    </div>
-                                    <button onClick={() => { setActiveModule('menu'); setSelectedList(null); }} className="text-sm text-emerald-600 font-semibold hover:underline">← Volver al Menú</button>
-                                </div>
-
-                                {!selectedList ? (
-                                    <div>
-                                        <div className="flex justify-between items-center mb-4">
-                                            <h4 className="text-sm font-bold text-slate-700">Listas Registradas</h4>
-                                            <button onClick={() => setShowAddListModal(true)} className="bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-700 transition shadow-md shadow-emerald-600/20">+ Nueva Lista</button>
+                        {/* ---------- PROYECTOS (CU-19 al CU-37) ---------- */}
+                        {activeModule === 'proyectos' && (() => {
+                            const visibleProjects = filterProjState === 'Todos' ? projects : projects.filter(p => p.estado === filterProjState);
+                            return (
+                                <section aria-labelledby="proj-title">
+                                    <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
+                                        <div>
+                                            <h1 id="proj-title" tabIndex={-1} className="focus:outline-none text-2xl font-bold text-ink tracking-tight">Proyectos del taller</h1>
+                                            <p className="mt-1 text-sm text-muted">Vincula cada trabajo con su lista de materiales, revisa si puedes arrancar y registra su avance.</p>
                                         </div>
-
-                                        {showAddListModal && (
-                                            <div className="mb-6 p-4 bg-emerald-50/80 border border-emerald-200 rounded-xl">
-                                                <form onSubmit={handleCreateList} className="flex gap-3">
-                                                    <input 
-                                                        type="text" 
-                                                        placeholder="Nombre único de la lista (Ej. Proyecto Mueble de Cocina)" 
-                                                        value={newListName} 
-                                                        onChange={(e) => setNewListName(e.target.value)} 
-                                                        required 
-                                                        className="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-sm bg-white" 
-                                                    />
-                                                    <button type="button" onClick={() => setShowAddListModal(false)} className="px-4 py-2 bg-gray-200 text-slate-700 rounded-xl text-xs font-semibold">Cancelar</button>
-                                                    <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700">Crear Lista</button>
-                                                </form>
-                                            </div>
+                                        {!showAddProject && (
+                                            <button id="btn-add-project" type="button" onClick={() => setShowAddProject(true)} className={BTN_PRIMARIO}>
+                                                <Icon name="mas" className="w-4 h-4" strokeWidth={2.2} /> Nuevo proyecto
+                                            </button>
                                         )}
+                                    </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {lists.length > 0 ? (
-                                                lists.map(list => (
-                                                    <div key={list.id} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 hover:border-emerald-300 transition flex flex-col justify-between">
-                                                        <div>
-                                                            <h5 className="font-bold text-slate-800 text-base">{list.nombre}</h5>
-                                                            <p className="text-xs text-slate-500 mt-1">Ítems asignados: {list.items.length}</p>
+                                    {showAddProject && (
+                                        <form onSubmit={handleCreateProject} noValidate onKeyDown={(e) => e.key === 'Escape' && closeAddProject()} className="panel-enter mb-6 p-4 sm:p-5 bg-surface border border-line-strong rounded-2xl">
+                                            <h2 className="text-base font-bold text-ink mb-3">Registrar trabajo o proyecto</h2>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
+                                                <div>
+                                                    <label htmlFor="proj-name" className={ETIQUETA}>Nombre del proyecto</label>
+                                                    <input id="proj-name" type="text" autoFocus maxLength={70} placeholder="Ej. Puertas de cedro lote 4" value={newProjName} onChange={(e) => { setNewProjName(e.target.value); setProjErrors({ ...projErrors, nombre: '' }); }} aria-invalid={!!projErrors.nombre} aria-describedby={projErrors.nombre ? 'proj-name-err' : undefined} className={`${CAMPO} ${borde(projErrors.nombre)}`} />
+                                                    <FieldError id="proj-name-err">{projErrors.nombre}</FieldError>
+                                                </div>
+                                                <div>
+                                                    <label htmlFor="proj-resp" className={ETIQUETA}>Responsable</label>
+                                                    <input id="proj-resp" type="text" maxLength={50} placeholder="Ej. Marco Solís" value={newProjResp} onChange={(e) => { setNewProjResp(e.target.value); setProjErrors({ ...projErrors, responsable: '' }); }} aria-invalid={!!projErrors.responsable} aria-describedby={projErrors.responsable ? 'proj-resp-err' : undefined} className={`${CAMPO} ${borde(projErrors.responsable)}`} />
+                                                    <FieldError id="proj-resp-err">{projErrors.responsable}</FieldError>
+                                                </div>
+                                                <div>
+                                                    <label htmlFor="proj-list" className={ETIQUETA}>Lista de materiales</label>
+                                                    <select id="proj-list" value={newProjListId} onChange={(e) => setNewProjListId(e.target.value)} className={`${CAMPO} ${borde(false)}`}>
+                                                        <option value="">Sin lista asociada</option>
+                                                        {lists.map(l => (
+                                                            <option key={l.id} value={l.id}>{l.nombre}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div className="mt-3">
+                                                <label htmlFor="proj-note" className={ETIQUETA}>Notas o etapa actual (opcional)</label>
+                                                <input id="proj-note" type="text" maxLength={120} placeholder="Ej. Corte de piezas listo, falta lijado y armado" value={newProjNote} onChange={(e) => setNewProjNote(e.target.value)} className={`${CAMPO} ${borde(false)}`} />
+                                            </div>
+                                            <div className="flex justify-end gap-2 mt-4">
+                                                <button type="button" onClick={closeAddProject} className={BTN_SECUNDARIO}>Cancelar</button>
+                                                <button type="submit" className={BTN_PRIMARIO}>Guardar proyecto</button>
+                                            </div>
+                                        </form>
+                                    )}
+
+                                    <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                                        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrar proyectos por estado">
+                                            {['Todos', 'Pendiente', 'En curso', 'Terminado'].map(est => {
+                                                const activo = filterProjState === est;
+                                                const cuenta = est === 'Todos' ? projects.length : projects.filter(p => p.estado === est).length;
+                                                return (
+                                                    <button
+                                                        key={est}
+                                                        type="button"
+                                                        onClick={() => setFilterProjState(est)}
+                                                        aria-pressed={activo}
+                                                        className={`min-h-[2.25rem] px-3 rounded-xl text-sm font-semibold transition-colors ${activo ? 'bg-brand text-white' : 'bg-surface text-ink-soft border border-line hover:bg-canvas'}`}
+                                                    >
+                                                        {est} <span className={`ml-1 font-mono text-xs ${activo ? 'text-brand-ink' : 'text-muted'}`}>({cuenta})</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {visibleProjects.length > 0 ? (
+                                        <ul className="space-y-4">
+                                            {visibleProjects.map(proj => {
+                                                const linkedList = lists.find(l => l.id === proj.listId) || null;
+                                                const rev = linkedList ? revisarLista(linkedList, inventory) : null;
+                                                const stateBadge = proj.estado === 'Terminado'
+                                                    ? { cls: 'bg-ok-soft text-ok', icon: 'check' }
+                                                    : proj.estado === 'En curso'
+                                                    ? { cls: 'bg-warn-soft text-warn', icon: 'llave' }
+                                                    : { cls: 'bg-canvas text-ink-soft border border-line-strong', icon: 'carpeta' };
+                                                return (
+                                                    <li key={proj.id} className="bg-surface border border-line rounded-2xl p-4 sm:p-5">
+                                                        <div className="flex flex-wrap items-start justify-between gap-3">
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="flex flex-wrap items-center gap-2">
+                                                                    <h2 className="text-lg font-bold text-ink [overflow-wrap:anywhere]">{proj.nombre}</h2>
+                                                                    <Badge cls={stateBadge.cls} icon={stateBadge.icon}>{proj.estado}</Badge>
+                                                                </div>
+                                                                <p className="mt-1 text-sm text-muted">
+                                                                    Responsable: <b className="font-semibold text-ink-soft">{proj.responsable}</b> · {proj.nota}
+                                                                </p>
+                                                            </div>
+                                                            <button type="button" data-del-proj={proj.id} onClick={() => handleDeleteProject(proj)} aria-label={`Eliminar proyecto ${proj.nombre}`} className={`${BTN_PELIGRO} max-sm:w-10 max-sm:px-0`}>
+                                                                <Icon name="basura" className="w-4 h-4" /><span className="hidden sm:inline">Eliminar</span>
+                                                            </button>
                                                         </div>
-                                                        <div className="flex justify-end gap-2 mt-4">
-                                                            <button onClick={() => setSelectedList(list)} className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700">Ver / Gestionar</button>
-                                                            <button onClick={() => handleDeleteList(list.id, list.nombre)} className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100">Eliminar</button>
+
+                                                        <div className="mt-4 pt-4 border-t border-line grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <span className="text-sm font-semibold text-ink">Materiales:</span>
+                                                                {linkedList ? (
+                                                                    <>
+                                                                        <ResumenBadge revision={rev} />
+                                                                        <button type="button" onClick={() => { setActiveModule('listas'); openList(linkedList.id); }} className={ENLACE}>
+                                                                            Ver "{linkedList.nombre}" →
+                                                                        </button>
+                                                                    </>
+                                                                ) : (
+                                                                    <span className="text-sm text-muted">Sin lista vinculada</span>
+                                                                )}
+                                                            </div>
+
+                                                            <div className="flex flex-wrap items-center justify-between md:justify-end gap-3">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-sm text-muted">Avance:</span>
+                                                                    <button type="button" onClick={() => handleStepProjectProgress(proj, -20)} disabled={proj.avance <= 0} aria-label={`Reducir avance de ${proj.nombre}`} className="btn-press w-8 h-8 rounded-lg border border-line-strong bg-surface text-ink font-mono font-bold hover:bg-canvas disabled:opacity-40">−</button>
+                                                                    <span className="font-mono font-bold text-sm text-ink min-w-[3.25rem] text-center">{proj.avance}%</span>
+                                                                    <button type="button" onClick={() => handleStepProjectProgress(proj, 20)} disabled={proj.avance >= 100} aria-label={`Aumentar avance de ${proj.nombre}`} className="btn-press w-8 h-8 rounded-lg border border-line-strong bg-surface text-ink font-mono font-bold hover:bg-canvas disabled:opacity-40">+</button>
+                                                                </div>
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <label htmlFor={`proj-state-${proj.id}`} className="sr-only">Cambiar estado de {proj.nombre}</label>
+                                                                    <select id={`proj-state-${proj.id}`} value={proj.estado} onChange={(e) => handleUpdateProjectState(proj, e.target.value)} className="min-h-[2.25rem] px-2.5 py-1 border border-line-strong rounded-xl text-sm font-semibold bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-link">
+                                                                        <option value="Pendiente">Pendiente</option>
+                                                                        <option value="En curso">En curso</option>
+                                                                        <option value="Terminado">Terminado</option>
+                                                                    </select>
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                ))
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    ) : (
+                                        <div className="border border-dashed border-line-strong rounded-2xl p-10 text-center">
+                                            <p className="text-base font-semibold text-ink">No hay proyectos en esta vista</p>
+                                            <p className="mt-1 text-sm text-muted">Registra un proyecto y asócialo a una lista de materiales para seguir su estado en el taller.</p>
+                                            {filterProjState !== 'Todos' ? (
+                                                <button type="button" onClick={() => setFilterProjState('Todos')} className={`${BTN_SECUNDARIO} mt-4`}>Ver todos los proyectos</button>
                                             ) : (
-                                                <p className="col-span-2 text-center text-slate-400 text-sm py-6">No hay listas de materiales creadas.</p>
+                                                <button type="button" onClick={() => setShowAddProject(true)} className={`${BTN_PRIMARIO} mt-4`}>Crear el primer proyecto</button>
                                             )}
                                         </div>
-                                    </div>
-                                ) : (
-                                    /* Vista de detalle de una lista seleccionada */
-                                    <div>
-                                        <div className="flex justify-between items-center mb-4 bg-emerald-50 p-4 rounded-xl border border-emerald-100">
-                                            <div>
-                                                <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Lista Seleccionada</span>
-                                                <h4 className="text-lg font-bold text-emerald-900">{selectedList.nombre}</h4>
-                                            </div>
-                                            <button onClick={() => setSelectedList(null)} className="text-xs font-semibold text-emerald-700 hover:underline">← Volver a Listas</button>
-                                        </div>
-
-                                        {/* Formulario para agregar ítem del inventario a la lista */}
-                                        <form onSubmit={handleAddTolist} className="flex gap-3 mb-6">
-                                            <select 
-                                                value={itemToAddId} 
-                                                onChange={(e) => setItemToAddId(e.target.value)} 
-                                                required 
-                                                className="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-sm bg-slate-50"
-                                            >
-                                                <option value="">-- Seleccionar ítem del inventario para agregar --</option>
-                                                {inventory.map(inv => (
-                                                    <option key={inv.id} value={inv.id}>{inv.categoria}: {inv.nombre} (Stock: {inv.cantidad})</option>
-                                                ))}
-                                            </select>
-                                            <button type="submit" className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700">Agregar a Lista</button>
-                                        </form>
-
-                                        {/* Tabla de ítems de la lista */}
-                                        <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                                            <table className="w-full text-left border-collapse">
-                                                <thead>
-                                                    <tr className="bg-slate-50 text-slate-700 text-xs uppercase font-semibold border-b border-slate-200">
-                                                        <th className="p-3">Nombre del Ítem</th>
-                                                        <th className="p-3 text-center">Acción</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-slate-100 text-sm text-slate-600">
-                                                    {selectedList.items.length > 0 ? (
-                                                        selectedList.items.map(i => (
-                                                            <tr key={i.id} className="hover:bg-slate-50/50">
-                                                                <td className="p-3 font-medium text-slate-800">{i.nombre}</td>
-                                                                <td className="p-3 text-center">
-                                                                    <button onClick={() => handleRemoveFromList(i.id)} className="text-red-500 hover:text-red-700 text-xs font-semibold px-2 py-1 bg-red-50 rounded-lg">Quitar</button>
-                                                                </td>
-                                                            </tr>
-                                                        ))
-                                                    ) : (
-                                                        <tr><td colSpan="2" className="p-6 text-center text-slate-400 text-sm">Esta lista aún no tiene ítems asignados.</td></tr>
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {activeModule === 'proyectos' && (
-                            <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-100">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-lg font-bold text-slate-800">Módulo de Proyectos</h3>
-                                    <button onClick={() => setActiveModule('menu')} className="text-sm text-emerald-600 font-semibold hover:underline">← Volver al Menú</button>
-                                </div>
-                                <p className="text-slate-500 text-sm">Próximamente: Estados de proyectos, seguimiento y progreso (CU-19 al CU-37).</p>
-                            </div>
-                        )}
+                                    )}
+                                </section>
+                            );
+                        })()}
                     </main>
+                    <footer className="max-w-5xl w-full mx-auto px-4 sm:px-6 py-5 border-t border-line flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
+                        <span>¿Hay materiales? · Inventario, listas y proyectos del taller</span>
+                        <button type="button" onClick={handleResetDemo} className="font-semibold text-ink-soft hover:text-link underline underline-offset-4">
+                            Restaurar datos de demostración
+                        </button>
+                    </footer>
+                    {toastEl}
                 </div>
             );
         }
 
-        ReactDOM.render(<App />, document.getElementById('root'));
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
 </html>
