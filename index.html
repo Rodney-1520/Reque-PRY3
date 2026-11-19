@@ -463,7 +463,7 @@
             // IDs que no chocan: siempre por encima del mayor existente
             const idRef = React.useRef(0);
             const nuevoId = () => {
-                const max = Math.max(0, ...inventory.map(i => i.id), ...lists.map(l => l.id), ...projects.map(p => p.id));
+                const max = Math.max(0, ...inventory.map(i => i.id), ...lists.map(l => l.id), ...projects.map(p => p.id), ...projects.map(p => p.listId || 0));
                 idRef.current = Math.max(idRef.current, max) + 1;
                 return idRef.current;
             };
@@ -505,6 +505,7 @@
             };
 
             const jumpToInventoryItem = (item) => {
+                if (!isAdmin) return;
                 setActiveModule('inventario');
                 setSelectedListId(null);
                 setSearchTerm(item.nombre);
@@ -566,9 +567,10 @@
                 else if (projects.some(p => normalizar(p.nombre) === normalizar(nombre)))
                     errors.nombre = `Ya existe un proyecto llamado "${nombre}".`;
                 if (!responsable) errors.responsable = 'Indica quién está a cargo.';
+                if (newProjListId && projects.some(p => p.listId === Number(newProjListId))) errors.lista = 'Esa lista ya está asignada a otro proyecto.';
                 setProjErrors(errors);
                 if (Object.keys(errors).length) {
-                    enfocar(errors.nombre ? '#proj-name' : '#proj-resp');
+                    enfocar(errors.nombre ? '#proj-name' : errors.responsable ? '#proj-resp' : '#proj-list');
                     return;
                 }
                 const nuevo = {
@@ -595,7 +597,7 @@
                 if (!isAdmin || nuevoEstado === proj.estado) return;
                 if (nuevoEstado === 'En curso') {
                     const otro = projects.find(p => p.id !== proj.id && p.estado === 'En curso');
-                    if (otro) { showToast(`Ya hay un proyecto en curso: "${otro.nombre}". Páusalo o finalízalo primero.`); return; }
+                    if (otro) { showToast(`Ya hay un proyecto en curso: "${otro.nombre}". Pásalo a pendiente o finalízalo primero.`); return; }
                 }
                 if (nuevoEstado === 'Finalizado') {
                     const l = lists.find(x => x.id === proj.listId);
@@ -623,8 +625,8 @@
             const duplicarProyecto = (proj) => {
                 const base = `${proj.nombre} (copia)`; let nombre = base, n = 2;
                 while (projects.some(p => normalizar(p.nombre) === normalizar(nombre))) nombre = `${base} ${n++}`;
-                setProjects(prev => [{ ...proj, id: nuevoId(), nombre, estado: 'Pendiente', avance: 0, verificados: [], historial: [{ fecha: hoy(), texto: `Duplicado de "${proj.nombre}"` }] }, ...prev]);
-                showToast(`Duplicaste el proyecto como "${nombre}".`);
+                setProjects(prev => [{ ...proj, id: nuevoId(), nombre, estado: 'Pendiente', avance: 0, listId: null, verificados: [], historial: [{ fecha: hoy(), texto: `Duplicado de "${proj.nombre}"` }] }, ...prev]);
+                showToast(proj.listId ? `Duplicaste el proyecto como "${nombre}". Quedó sin lista porque cada lista va en un solo proyecto; asígnale otra.` : `Duplicaste el proyecto como "${nombre}".`);
             };
             const [salio, setSalio] = React.useState(false);
             const handleExit = () => { handleLogout(); setSalio(true); try { window.close(); } catch {} };
@@ -1291,7 +1293,7 @@
                                         ) : (
                                             <p className="text-sm text-muted">
                                                 {inventory.length === 0
-                                                    ? <>El inventario está vacío. <button type="button" onClick={() => { goTo('inventario'); setShowAddItem(true); }} className={ENLACE}>Registra materiales</button> para poder agregarlos.</>
+                                                    ? <>El inventario está vacío. <button type="button" data-admin onClick={() => { goTo('inventario'); setShowAddItem(true); }} className={ENLACE}>Registra materiales</button> para poder agregarlos.</>
                                                     : 'Ya agregaste todos los materiales del inventario a esta lista.'}
                                             </p>
                                         )}
@@ -1321,7 +1323,7 @@
                                                                     {f.falta > 0 ? (
                                                                         <>
                                                                             <Badge cls="bg-err-soft text-err-strong" icon="alerta">Faltan {fmt(f.falta)}</Badge>
-                                                                            <button type="button" onClick={() => jumpToInventoryItem(f)} className="text-xs font-semibold text-link underline underline-offset-2">Ajustar en bodega →</button>
+                                                                            <button type="button" data-admin onClick={() => jumpToInventoryItem(f)} className="text-xs font-semibold text-link underline underline-offset-2">Ajustar en bodega →</button>
                                                                         </>
                                                                     ) : (
                                                                         <Badge cls="bg-ok-soft text-ok" icon="check">Alcanza</Badge>
@@ -1343,7 +1345,7 @@
                                                                 {f.falta > 0 ? (
                                                                     <div className="flex flex-wrap items-center gap-2">
                                                                         <Badge cls="bg-err-soft text-err-strong" icon="alerta">Faltan {fmt(f.falta)}</Badge>
-                                                                        <button type="button" onClick={() => jumpToInventoryItem(f)} className="text-xs font-semibold text-link hover:text-link-hover underline underline-offset-4">Ajustar en bodega →</button>
+                                                                        <button type="button" data-admin onClick={() => jumpToInventoryItem(f)} className="text-xs font-semibold text-link hover:text-link-hover underline underline-offset-4">Ajustar en bodega →</button>
                                                                     </div>
                                                                 ) : (
                                                                     <Badge cls="bg-ok-soft text-ok" icon="check">Alcanza</Badge>
@@ -1390,7 +1392,7 @@
                                     )}
                                 </div>
 
-                                {showAddItem && (
+                                {showAddItem && isAdmin && (
                                     <form onSubmit={handleAddItem} noValidate onKeyDown={(e) => e.key === 'Escape' && closeAddItem()} className="panel-enter mb-6 p-4 sm:p-5 bg-surface border border-line-strong rounded-2xl">
                                         <h2 className="text-base font-bold text-ink mb-3">Registrar herramienta o material</h2>
                                         <div className="grid grid-cols-1 md:grid-cols-[10rem_1fr_12rem_8rem] gap-3 items-start">
@@ -1603,12 +1605,13 @@
                                                 </div>
                                                 <div>
                                                     <label htmlFor="proj-list" className={ETIQUETA}>Lista de materiales</label>
-                                                    <select id="proj-list" value={newProjListId} onChange={(e) => setNewProjListId(e.target.value)} className={`${CAMPO} ${borde(false)}`}>
+                                                    <select id="proj-list" value={newProjListId} onChange={(e) => { setNewProjListId(e.target.value); setProjErrors({ ...projErrors, lista: '' }); }} aria-invalid={!!projErrors.lista} className={`${CAMPO} ${borde(!!projErrors.lista)}`}>
                                                         <option value="">Sin lista asociada</option>
-                                                        {lists.map(l => (
+                                                        {lists.filter(l => !projects.some(p => p.listId === l.id)).map(l => (
                                                             <option key={l.id} value={l.id}>{l.nombre}</option>
                                                         ))}
                                                     </select>
+                                                    <FieldError id="proj-list-err">{projErrors.lista}</FieldError>
                                                 </div>
                                             </div>
                                             <div className="mt-3">
