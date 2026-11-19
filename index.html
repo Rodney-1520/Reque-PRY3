@@ -98,6 +98,9 @@
         input[type="search"]::-webkit-search-cancel-button { display: none; }
         /* El navegador agrega su propio ojo en los campos de contraseña; usamos solo el nuestro */
         input::-ms-reveal, input::-ms-clear { display: none; }
+        .rol-trabajador [data-admin] { display: none !important; }
+        .rol-trabajador [data-lock] { pointer-events: none; }
+        .rol-trabajador [data-lock] svg { display: none; }
         input[type="password"]::-webkit-credentials-auto-fill-button, input::-webkit-contacts-auto-fill-button { display: none !important; visibility: hidden; pointer-events: none; }
 
         /* Emil Kowalski Design Engineering: Buttons must feel responsive (scale(0.97) on press, explicit properties, never transition:all) */
@@ -241,19 +244,6 @@
                 return () => mq.removeEventListener('change', onChange);
             }, []);
             return angosta;
-        }
-
-        // ¿Pantalla ancha? Muestra listas, inventario y proyectos lado a lado con su detalle
-        const MQ_ANCHA = '(min-width: 1280px)';
-        function useAncha() {
-            const [ancha, setAncha] = React.useState(() => { try { return window.matchMedia(MQ_ANCHA).matches; } catch { return false; } });
-            React.useEffect(() => {
-                const mq = window.matchMedia(MQ_ANCHA);
-                const onChange = () => setAncha(mq.matches);
-                mq.addEventListener('change', onChange);
-                return () => mq.removeEventListener('change', onChange);
-            }, []);
-            return ancha;
         }
 
         // Editor de una cantidad. En celular va apilado en su propia fila para que nada quede fuera de pantalla
@@ -404,6 +394,7 @@
         // Texto corto de lo que falta: "Tornillos de madera 2" (50) · Lija grano 120 (6)"
         const textoFaltantes = (faltantes) => faltantes.map(f => `${f.nombre} (${fmt(f.falta)})`).join(' · ');
 
+        const USUARIOS = { admin: { pass: '12345', rol: 'admin' }, trabajador: { pass: '54321', rol: 'trabajador' } };
         const PESTANAS = [
             { id: 'listas', label: 'Listas', icon: 'lista' },
             { id: 'inventario', label: 'Inventario', icon: 'caja' },
@@ -419,13 +410,17 @@
             const [errorMessage, setErrorMessage] = React.useState('');
             const [loginErrorField, setLoginErrorField] = React.useState(null); // 'user' | 'pass' | 'both'
             const angosta = useAngosta();
-            const ancha = useAncha();
             const [activeUser, setActiveUser] = React.useState('');
+            const [role, setRole] = React.useState('');
+            const isAdmin = role === 'admin';
+            const intentos = React.useRef({ n: 0, hasta: 0 });
+            React.useEffect(() => { document.body.classList.toggle('rol-trabajador', role === 'trabajador'); }, [role]);
 
             const [activeModule, setActiveModule] = React.useState('menu');
 
             // Inventario (CU-04 al CU-13)
-            const [inventory, setInventory] = usePersistentState('hm-inventario', INVENTARIO_INICIAL);
+            const [inventory, setInventoryRaw] = usePersistentState('hm-inventario', INVENTARIO_INICIAL);
+            const setInventory = (...a) => { if (isAdmin) setInventoryRaw(...a); };
             const [showAddItem, setShowAddItem] = React.useState(false);
             const [newCategory, setNewCategory] = React.useState('Herramienta');
             const [newName, setNewName] = React.useState('');
@@ -437,7 +432,8 @@
             const [editing, setEditing] = React.useState(null); // { id, value, error } al ajustar una cantidad
 
             // Listas de materiales (CU-14 al CU-18)
-            const [lists, setLists] = usePersistentState('hm-listas', LISTAS_INICIALES);
+            const [lists, setListsRaw] = usePersistentState('hm-listas', LISTAS_INICIALES);
+            const setLists = (...a) => { if (isAdmin) setListsRaw(...a); };
             const [newListName, setNewListName] = React.useState('');
             const [listNameError, setListNameError] = React.useState('');
             const [showAddList, setShowAddList] = React.useState(false);
@@ -450,7 +446,8 @@
             const [editingItem, setEditingItem] = React.useState(null); // { id, categoria, nombre, ubicacion, errors }
 
             // Proyectos del taller (CU-19 al CU-37)
-            const [projects, setProjects] = usePersistentState('hm-proyectos', PROYECTOS_INICIALES);
+            const [projects, setProjectsRaw] = usePersistentState('hm-proyectos', PROYECTOS_INICIALES);
+            const setProjects = (...a) => { if (isAdmin) setProjectsRaw(...a); };
             const [showAddProject, setShowAddProject] = React.useState(false);
             const [newProjName, setNewProjName] = React.useState('');
             const [newProjResp, setNewProjResp] = React.useState('');
@@ -458,8 +455,7 @@
             const [newProjNote, setNewProjNote] = React.useState('');
             const [projErrors, setProjErrors] = React.useState({});
             const [filterProjState, setFilterProjState] = React.useState('Todos');
-            const [selectedProjId, setSelectedProjId] = React.useState(null);
-            React.useEffect(() => { setProjects(prev => prev.some(p => p.estado === 'Termin' + 'ado') ? prev.map(p => p.estado === 'Termin' + 'ado' ? { ...p, estado: 'Finalizado' } : p) : prev); }, []);
+            React.useEffect(() => { setProjectsRaw(prev => prev.some(p => p.estado === 'Termin' + 'ado') ? prev.map(p => p.estado === 'Termin' + 'ado' ? { ...p, estado: 'Finalizado' } : p) : prev); }, []);
 
             const [toasts, setToasts] = React.useState([]);
             const [sort, setSort] = React.useState({ col: null, dir: 'asc' }); // orden de la tabla de inventario
@@ -473,7 +469,7 @@
             };
 
             // La lista abierta se deriva de `lists`, así nunca queda desactualizada
-            const selectedList = lists.find(l => l.id === selectedListId) || (ancha ? lists[0] : null) || null;
+            const selectedList = lists.find(l => l.id === selectedListId) || null;
 
             const searchRef = React.useRef(null);
             const firstItemFieldRef = React.useRef(null);
@@ -566,6 +562,7 @@
                 const nota = newProjNote.trim();
                 const errors = {};
                 if (!nombre) errors.nombre = 'Escribe el nombre del trabajo o proyecto.';
+                else if (nombre.length < 3) errors.nombre = 'Usa al menos 3 caracteres.';
                 else if (projects.some(p => normalizar(p.nombre) === normalizar(nombre)))
                     errors.nombre = `Ya existe un proyecto llamado "${nombre}".`;
                 if (!responsable) errors.responsable = 'Indica quién está a cargo.';
@@ -591,13 +588,29 @@
             };
 
             const hoy = () => new Date().toLocaleString('es-CR', { dateStyle: 'short', timeStyle: 'short' });
-            const updProj = (id, cambios, texto) => setProjects(prev => prev.map(p => p.id === id ? { ...p, ...cambios, historial: [{ fecha: hoy(), texto }, ...(p.historial || [])].slice(0, 50) } : p));
+            const updProj = (id, cambios, texto) => (isAdmin || Object.keys(cambios).join() === 'verificados') && setProjectsRaw(prev => prev.map(p => p.id === id ? { ...p, ...cambios, historial: [{ fecha: hoy(), texto }, ...(p.historial || [])].slice(0, 50) } : p));
             const verificadosDe = (p) => { const l = lists.find(x => x.id === p.listId); return l ? (p.verificados || []).filter(id => l.items.some(i => i.id === id)).length : 0; };
             const avanceDe = (p) => { const l = lists.find(x => x.id === p.listId); return l && l.items.length ? Math.round(verificadosDe(p) / l.items.length * 100) : p.avance; };
-            const handleUpdateProjectState = (proj, nuevoEstado) => { updProj(proj.id, { estado: nuevoEstado }, `Estado: ${proj.estado} → ${nuevoEstado}`); showToast(`"${proj.nombre}" pasó a ${nuevoEstado.toLowerCase()}.`); };
+            const handleUpdateProjectState = (proj, nuevoEstado) => {
+                if (!isAdmin || nuevoEstado === proj.estado) return;
+                if (nuevoEstado === 'En curso') {
+                    const otro = projects.find(p => p.id !== proj.id && p.estado === 'En curso');
+                    if (otro) { showToast(`Ya hay un proyecto en curso: "${otro.nombre}". Páusalo o finalízalo primero.`); return; }
+                }
+                if (nuevoEstado === 'Finalizado') {
+                    const l = lists.find(x => x.id === proj.listId);
+                    const faltan = l ? l.items.length - verificadosDe(proj) : 0;
+                    if (faltan > 0 && !window.confirm(`Quedan ${faltan} ítems sin verificar. ¿Finalizar el proyecto de todos modos?`)) return;
+                }
+                updProj(proj.id, { estado: nuevoEstado }, `Estado: ${proj.estado} → ${nuevoEstado}`);
+                showToast(`"${proj.nombre}" pasó a ${nuevoEstado.toLowerCase()}.`);
+            };
             const handleStepProjectProgress = (proj, delta) => { const a = Math.max(0, Math.min(100, proj.avance + delta)); updProj(proj.id, { avance: a }, `Avance manual: ${a}%`); };
-            const toggleVerificado = (proj, itemId, nombre) => { const v = proj.verificados || []; const on = v.includes(itemId); updProj(proj.id, { verificados: on ? v.filter(x => x !== itemId) : [...v, itemId] }, `${on ? 'Desmarcó' : 'Verificó'} "${nombre}"`); };
-            const setListaProyecto = (proj, val) => { const id = val ? Number(val) : null; const l = lists.find(x => x.id === id); updProj(proj.id, { listId: id, verificados: [] }, l ? `Lista asociada: "${l.nombre}"` : 'Lista desasociada'); showToast(l ? `Asociaste "${l.nombre}" a "${proj.nombre}".` : `Quitaste la lista de "${proj.nombre}".`); };
+            const toggleVerificado = (proj, itemId, nombre) => { if (proj.estado !== 'En curso') { showToast('Solo puedes verificar ítems en un proyecto en curso.'); return; } const v = proj.verificados || []; const on = v.includes(itemId); updProj(proj.id, { verificados: on ? v.filter(x => x !== itemId) : [...v, itemId] }, `${on ? 'Desmarcó' : 'Verificó'} "${nombre}"`); };
+            const setListaProyecto = (proj, val) => {
+                const id = val ? Number(val) : null;
+                if (id && projects.some(p => p.id !== proj.id && p.listId === id)) { showToast('Esa lista ya está asignada a otro proyecto.'); return; }
+                if (!id && proj.estado === 'En curso' && (proj.verificados || []).length && !window.confirm('Se perderá el progreso de los ítems verificados. ¿Quitar la lista?')) return; const l = lists.find(x => x.id === id); updProj(proj.id, { listId: id, verificados: [] }, l ? `Lista asociada: "${l.nombre}"` : 'Lista desasociada'); showToast(l ? `Asociaste "${l.nombre}" a "${proj.nombre}".` : `Quitaste la lista de "${proj.nombre}".`); };
             const [editProj, setEditProj] = React.useState(null);
             const saveProj = (e) => {
                 e.preventDefault();
@@ -662,7 +675,7 @@
                 setItemToAddId('');
                 setNeedQty('1');
                 setEditingNeed(null);
-                requestAnimationFrame(() => mainRef.current?.querySelector('#list-title')?.focus());
+                requestAnimationFrame(() => mainRef.current?.querySelector('h1')?.focus());
             };
 
             // Al volver al índice, el foco regresa a la lista de la que venías
@@ -681,15 +694,25 @@
                     enfocar(!username.trim() ? '#login-user' : '#login-pass');
                     return;
                 }
-                if (username.trim() === 'admin' && password === '12345') {
+                if (Date.now() < intentos.current.hasta) {
+                    setLoginErrorField('both'); setPassword('');
+                    setErrorMessage('Demasiados intentos fallidos. Espera 30 segundos e inténtalo de nuevo.');
+                    return;
+                }
+                const cuenta = USUARIOS[username.trim().toLowerCase()];
+                if (cuenta && cuenta.pass === password) {
+                    intentos.current = { n: 0, hasta: 0 };
+                    setRole(cuenta.rol);
                     setIsLoggedIn(true);
-                    setActiveUser(username.trim());
+                    setActiveUser(username.trim().toLowerCase());
                     setErrorMessage('');
                     setLoginErrorField(null);
                     goTo('menu');
                 } else {
                     setLoginErrorField('both');
-                    setErrorMessage('El usuario o la contraseña no coinciden. Revísalos e intenta de nuevo.');
+                    intentos.current.n++;
+                    if (intentos.current.n >= 5) intentos.current = { n: 0, hasta: Date.now() + 30000 };
+                    setErrorMessage(intentos.current.hasta > Date.now() ? 'Demasiados intentos fallidos. Espera 30 segundos e inténtalo de nuevo.' : 'El usuario o la contraseña no coinciden. Revísalos e intenta de nuevo.');
                     setPassword('');
                     enfocar('#login-pass');
                 }
@@ -698,6 +721,7 @@
             // Cierre de sesión (CU-02)
             const handleLogout = () => {
                 setIsLoggedIn(false);
+                setRole('');
                 setUsername('');
                 setPassword('');
                 setShowPassword(false);
@@ -953,7 +977,7 @@
                                 <div>
                                     <label htmlFor="login-user" className={ETIQUETA}>Usuario</label>
                                     <input
-                                        id="login-user"
+                                        id="login-user" maxLength={30}
                                         type="text"
                                         value={username}
                                         onChange={(e) => setUsername(e.target.value)}
@@ -972,7 +996,7 @@
                                     <label htmlFor="login-pass" className={ETIQUETA}>Contraseña</label>
                                     <div className="relative">
                                         <input
-                                            id="login-pass"
+                                            id="login-pass" maxLength={64}
                                             type={showPassword ? 'text' : 'password'}
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
@@ -995,7 +1019,7 @@
                                 </div>
                                 <button type="submit" className={`${BTN_PRIMARIO} w-full min-h-[2.75rem] text-base font-bold`}>Entrar</button>
                             </form>
-                            <p className="mt-4 text-center text-sm text-muted">Acceso de prueba: <b className="text-ink">admin</b> / <b className="text-ink">12345</b></p>
+                            <p className="mt-4 text-center text-sm text-muted">Acceso de prueba: <b className="text-ink">admin</b> / <b className="text-ink">12345</b> · <b className="text-ink">trabajador</b> / <b className="text-ink">54321</b></p>
                         </main>
                         {toastEl}
                     </div></div>
@@ -1007,7 +1031,7 @@
                 <div className="min-h-screen bg-canvas flex flex-col">
                     <a href="#contenido" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-surface focus:px-3 focus:py-2 focus:rounded-lg">Saltar al contenido</a>
                     <header className="sticky top-0 z-30 bg-surface/95 backdrop-blur-md border-b border-line-strong">
-                        <div className="max-w-[100rem] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
                             <div className="flex items-center gap-6 min-w-0">
                                 <button type="button" onClick={() => goTo('menu')} aria-label="Ir al menú principal" className="flex items-center gap-2.5 min-w-0 text-left">
                                     <span className="w-9 h-9 rounded-xl bg-brand text-action flex items-center justify-center shrink-0">
@@ -1026,13 +1050,13 @@
                         </div>
                     </header>
 
-                    <main id="contenido" ref={mainRef} className="flex-1 max-w-[100rem] w-full mx-auto px-4 sm:px-6 pt-8 pb-28 sm:pb-12">
+                    <main id="contenido" ref={mainRef} className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-8 pb-28 sm:pb-12">
                         {activeModule !== 'menu' && (
                             <button type="button" onClick={() => goTo('menu')} className={`${BTN_SECUNDARIO} mb-5`}>
                                 <Icon name="flechaIzq" className="w-4 h-4" strokeWidth={2.2} /> Volver al menú principal
                             </button>
                         )}
-                        {(ancha || !selectedList) && activeModule !== 'menu' && (() => {
+                        {!selectedList && activeModule !== 'menu' && (() => {
                             const listasOk = lists.filter(l => revisarLista(l, inventory).lista).length;
                             const enCurso = projects.filter(p => p.estado === 'En curso').length;
                             const datos = [['En bodega', fmt(inventory.length), 'caja'], ['Stock bajo', fmt(conStockBajo), 'alerta'], ['Listas completas', `${listasOk}/${lists.length}`, 'lista'], ['En curso', fmt(enCurso), 'carpeta']];
@@ -1059,7 +1083,7 @@
                                 <div className="rounded-3xl bg-brand text-white p-8 sm:p-10 flex flex-col justify-between gap-10">
                                     <div>
                                         <h1 id="menu-title" tabIndex={-1} className="focus:outline-none text-4xl sm:text-5xl font-extrabold tracking-tight leading-[1.05]">Hola, {activeUser}</h1>
-                                        <p className="mt-4 text-lg text-brand-ink max-w-sm">Elige por dónde quieres empezar. Cada sección te muestra el estado de tu bodega.</p>
+                                        <p className="mt-4 text-lg text-brand-ink max-w-sm">{isAdmin ? 'Administrador' : 'Trabajador'} · Elige por dónde quieres empezar.</p>
                                     </div>
                                     <div className="hidden sm:grid grid-cols-4 gap-2 max-w-md font-mono text-xs font-semibold" aria-hidden="true">
                                         {[['A-1','a'],['A-2','b'],['B-3','a'],['B-4','a'],['C-1','b'],['C-2','a'],['C-4','c'],['D-1','a'],['D-2','a'],['E-1','b'],['E-2','a'],['E-3','a']].map(([c, t]) => (
@@ -1085,9 +1109,7 @@
                         )}
 
                         {/* ---------- LISTAS DE MATERIALES (CU-14 al CU-18) ---------- */}
-                        {activeModule === 'listas' && (
-                        <div className={ancha ? 'grid grid-cols-[minmax(19rem,26rem)_minmax(0,1fr)] gap-6 items-start' : ''}>
-                        {(ancha || !selectedList) && (
+                        {activeModule === 'listas' && !selectedList && (
                             <section aria-labelledby="lists-title">
                                 <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
                                     <div>
@@ -1095,7 +1117,7 @@
                                         <p className="mt-1 text-sm text-muted">Arma la lista de un trabajo y revisa si hay todo en bodega antes de empezar.</p>
                                     </div>
                                     {!showAddList && (
-                                        <button id="btn-add-list" type="button" onClick={() => setShowAddList(true)} className={BTN_PRIMARIO}>
+                                        <button id="btn-add-list" type="button" data-admin onClick={() => setShowAddList(true)} className={BTN_PRIMARIO}>
                                             <Icon name="mas" className="w-4 h-4" strokeWidth={2.2} /> Nueva lista
                                         </button>
                                     )}
@@ -1104,7 +1126,7 @@
                                 {showAddList && (
                                     <form onSubmit={handleCreateList} noValidate onKeyDown={(e) => e.key === 'Escape' && closeAddList()} className="panel-enter mb-6 p-4 bg-surface border border-line-strong rounded-2xl">
                                         <label htmlFor="list-name" className={ETIQUETA}>Nombre de la lista</label>
-                                        <div className={`flex flex-col ${ancha ? '' : 'sm:flex-row'} gap-3`}>
+                                        <div className="flex flex-col sm:flex-row gap-3">
                                             <div className="flex-1 min-w-0">
                                                 <input
                                                     id="list-name"
@@ -1129,11 +1151,11 @@
                                 )}
 
                                 {lists.length > 0 ? (
-                                    <ul className={ancha ? 'grid grid-cols-1 gap-2' : 'bg-surface border border-line rounded-2xl divide-y divide-line'}>
+                                    <ul className="bg-surface border border-line rounded-2xl divide-y divide-line">
                                         {lists.map(list => {
                                             const r = revisarLista(list, inventory);
                                             return (
-                                                <li key={list.id} className={ancha ? `hover-row relative flex items-center gap-3 p-4 bg-surface border rounded-2xl ${selectedList?.id === list.id ? 'border-action ring-1 ring-action' : 'border-line hover:border-line-strong'}` : 'hover-row relative flex items-center gap-4 p-4'}>
+                                                <li key={list.id} className="hover-row relative flex items-center gap-4 p-4">
                                                     <div className="flex-1 min-w-0">
                                                         <h2 className="text-base font-bold text-ink [overflow-wrap:anywhere]">
                                                             <button type="button" data-list-open={list.id} onClick={() => openList(list.id)} className="text-left hover:text-link focus-visible:outline-none after:absolute after:inset-0 after:rounded-[inherit] focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:outline-[var(--link)] focus-visible:after:-outline-offset-2">
@@ -1149,8 +1171,8 @@
                                                             </p>
                                                         </div>
                                                     </div>
-                                                    <button type="button" onClick={() => handleDeleteList(list)} className={`${BTN_PELIGRO} relative z-10 ${ancha ? 'w-10 !px-0' : 'max-sm:w-10 max-sm:px-0'}`} aria-label={`Eliminar lista ${list.nombre}`}>
-                                                        <Icon name="basura" className="w-4 h-4" /><span className={ancha ? 'hidden' : 'hidden sm:inline'}>Eliminar</span>
+                                                    <button type="button" data-admin onClick={() => handleDeleteList(list)} className={`${BTN_PELIGRO} relative z-10 max-sm:w-10 max-sm:px-0`} aria-label={`Eliminar lista ${list.nombre}`}>
+                                                        <Icon name="basura" className="w-4 h-4" /><span className="hidden sm:inline">Eliminar</span>
                                                     </button>
                                                     <span className="text-muted" aria-hidden="true"><Icon name="flechaDer" className="w-5 h-5" /></span>
                                                 </li>
@@ -1161,7 +1183,7 @@
                                     <div className="border border-dashed border-line-strong rounded-2xl p-10 text-center">
                                         <p className="text-base font-semibold text-ink">Todavía no tienes listas</p>
                                         <p className="mt-1 text-sm text-muted">Crea una por trabajo (por ejemplo, "Mueble de cocina") y te diremos si hay todo en bodega.</p>
-                                        <button type="button" onClick={() => setShowAddList(true)} className={`${BTN_PRIMARIO} mt-5`}>
+                                        <button type="button" data-admin onClick={() => setShowAddList(true)} className={`${BTN_PRIMARIO} mt-5`}>
                                             <Icon name="mas" className="w-4 h-4" strokeWidth={2.2} /> Crear la primera lista
                                         </button>
                                     </div>
@@ -1170,15 +1192,13 @@
                         )}
 
                         {/* Detalle de una lista: la respuesta a "¿hay materiales?" */}
-                        {selectedList && (() => {
+                        {activeModule === 'listas' && selectedList && (() => {
                             const r = revisarLista(selectedList, inventory);
                             return (
-                                <section aria-labelledby="list-title" className={ancha ? 'min-w-0 p-6 bg-surface border border-line rounded-2xl' : ''}>
-                                    {!ancha && (
+                                <section aria-labelledby="list-title">
                                     <button type="button" onClick={closeList} className={`${ENLACE} mb-3`}>
                                         <Icon name="flechaIzq" className="w-4 h-4" strokeWidth={2.2} /> Todas las listas
                                     </button>
-                                    )}
                                     {editingListTitle ? (
                                         <form onSubmit={saveListTitle} noValidate onKeyDown={(e) => e.key === 'Escape' && cancelListTitle()} className="mb-2">
                                             <label htmlFor="edit-list-title" className="sr-only">Nombre de la lista</label>
@@ -1192,14 +1212,14 @@
                                     ) : (
                                         <div className="flex flex-wrap items-center gap-2">
                                             <h1 id="list-title" tabIndex={-1} className="text-2xl font-bold text-ink tracking-tight [overflow-wrap:anywhere] focus:outline-none">{selectedList.nombre}</h1>
-                                            <button id="btn-rename-list" type="button" onClick={() => setEditingListTitle({ value: selectedList.nombre, error: '' })} aria-label={`Cambiar nombre de la lista ${selectedList.nombre}`} className="inline-flex items-center gap-1 min-h-[2.25rem] px-2.5 rounded-lg text-xs font-semibold text-muted hover:text-ink hover:bg-surface border border-transparent hover:border-line-strong">
+                                            <button data-admin id="btn-rename-list" type="button" onClick={() => setEditingListTitle({ value: selectedList.nombre, error: '' })} aria-label={`Cambiar nombre de la lista ${selectedList.nombre}`} className="inline-flex items-center gap-1 min-h-[2.25rem] px-2.5 rounded-lg text-xs font-semibold text-muted hover:text-ink hover:bg-surface border border-transparent hover:border-line-strong">
                                                 <Icon name="lapiz" className="w-3.5 h-3.5" /> Renombrar
                                             </button>
                                         </div>
                                     )}
 
                                     {/* Veredicto */}
-                                    <div role="status" className={`mt-4 mb-6 flex items-start gap-3 sm:gap-4 p-5 sm:p-6 rounded-2xl border ${r.filas.length === 0 ? 'bg-surface border-line' : r.lista ? 'bg-ok-soft border-[oklch(0.85_0.07_155)]' : 'bg-err-soft border-err-soft-hover'}`}>
+                                    <div role="status" className={`mt-4 mb-8 flex items-start gap-3 sm:gap-4 p-5 sm:p-6 rounded-2xl border ${r.filas.length === 0 ? 'bg-surface border-line' : r.lista ? 'bg-ok-soft border-[oklch(0.85_0.07_155)]' : 'bg-err-soft border-err-soft-hover'}`}>
                                         {r.filas.length === 0 ? (
                                             <>
                                                 <span className="text-muted mt-0.5"><Icon name="lista" className="w-6 h-6" /></span>
@@ -1232,7 +1252,7 @@
                                     </div>
 
                                     {/* Agregar material con cantidad necesaria */}
-                                    <form onSubmit={handleAddToList} noValidate className="mb-6">
+                                    <form data-admin onSubmit={handleAddToList} noValidate className="mb-6">
                                         <h2 className="text-base font-bold text-ink mb-3">Agregar a la lista</h2>
                                         {disponibles.length > 0 ? (
                                             <div className="grid grid-cols-1 sm:grid-cols-[1fr_8rem_auto] gap-3 items-start">
@@ -1312,7 +1332,7 @@
                                                                 {editingNeed && editingNeed.id === f.id && !angosta ? (
                                                                     <EditorCantidad id={`need-${f.id}`} label={`Cuánto necesitas de ${f.nombre}`} min="1" value={editingNeed.value} error={editingNeed.error} onChange={(e) => setEditingNeed({ ...editingNeed, value: e.target.value, error: '' })} onSubmit={saveNeed} onCancel={cancelNeed} />
                                                                 ) : (
-                                                                    <button type="button" data-need={f.id} onClick={() => setEditingNeed({ id: f.id, value: String(f.necesito), error: '' })} aria-label={`Cambiar cuánto necesitas de ${f.nombre}: ${f.necesito}`} className="inline-flex items-center gap-1.5 font-mono font-bold text-ink min-h-[2.5rem] px-2 -mr-2 rounded-lg hover:bg-action-soft hover:text-link">
+                                                                    <button type="button" data-need={f.id} data-lock tabIndex={isAdmin ? 0 : -1} onClick={() => setEditingNeed({ id: f.id, value: String(f.necesito), error: '' })} aria-label={`Cambiar cuánto necesitas de ${f.nombre}: ${f.necesito}`} className="inline-flex items-center gap-1.5 font-mono font-bold text-ink min-h-[2.5rem] px-2 -mr-2 rounded-lg hover:bg-action-soft hover:text-link">
                                                                         {fmt(f.necesito)}
                                                                         <Icon name="lapiz" className="w-3.5 h-3.5 text-muted" />
                                                                     </button>
@@ -1330,7 +1350,7 @@
                                                                 )}
                                                             </td>
                                                             <td className="px-2 sm:px-4 py-3 text-right">
-                                                                <button type="button" data-quitar={f.id} onClick={() => handleRemoveFromList(f)} aria-label={`Quitar ${f.nombre} de la lista`} className={`${BTN_PELIGRO} max-sm:w-10 max-sm:px-0`}><Icon name="x" className="w-4 h-4" strokeWidth={2.2} /><span className="hidden sm:inline">Quitar</span></button>
+                                                                <button type="button" data-admin data-quitar={f.id} onClick={() => handleRemoveFromList(f)} aria-label={`Quitar ${f.nombre} de la lista`} className={`${BTN_PELIGRO} max-sm:w-10 max-sm:px-0`}><Icon name="x" className="w-4 h-4" strokeWidth={2.2} /><span className="hidden sm:inline">Quitar</span></button>
                                                             </td>
                                                         </tr>
                                                         {editingNeed && editingNeed.id === f.id && angosta && (
@@ -1352,8 +1372,6 @@
                                 </section>
                             );
                         })()}
-                        </div>
-                        )}
 
                         {/* ---------- INVENTARIO (CU-04 al CU-13) ---------- */}
                         {activeModule === 'inventario' && (
@@ -1365,18 +1383,17 @@
                                             {plural(inventory.length, 'ítem', 'ítems')} en bodega{conStockBajo > 0 && <> · <button type="button" onClick={() => setFilterCategory('Bajo')} className="font-semibold text-warn underline underline-offset-4 decoration-dotted">{fmt(conStockBajo)} con stock bajo o agotado</button></>}
                                         </p>
                                     </div>
-                                    {!showAddItem && !ancha && (
-                                        <button id="btn-add-item" type="button" onClick={() => setShowAddItem(true)} className={BTN_PRIMARIO}>
+                                    {!showAddItem && (
+                                        <button data-admin id="btn-add-item" type="button" onClick={() => setShowAddItem(true)} className={BTN_PRIMARIO}>
                                             <Icon name="mas" className="w-4 h-4" strokeWidth={2.2} /> Registrar ítem
                                         </button>
                                     )}
                                 </div>
 
-                                <div className={ancha ? 'grid grid-cols-[minmax(0,1fr)_20rem] gap-6 items-start' : ''}>
-                                {(showAddItem || ancha) && (
-                                    <form onSubmit={handleAddItem} noValidate onKeyDown={(e) => !ancha && e.key === 'Escape' && closeAddItem()} className={`${ancha ? 'order-2 p-5' : 'panel-enter mb-6 p-4 sm:p-5'} bg-surface border border-line-strong rounded-2xl`}>
+                                {showAddItem && (
+                                    <form onSubmit={handleAddItem} noValidate onKeyDown={(e) => e.key === 'Escape' && closeAddItem()} className="panel-enter mb-6 p-4 sm:p-5 bg-surface border border-line-strong rounded-2xl">
                                         <h2 className="text-base font-bold text-ink mb-3">Registrar herramienta o material</h2>
-                                        <div className={`grid grid-cols-1 ${ancha ? '' : 'md:grid-cols-[10rem_1fr_12rem_8rem]'} gap-3 items-start`}>
+                                        <div className="grid grid-cols-1 md:grid-cols-[10rem_1fr_12rem_8rem] gap-3 items-start">
                                             <div>
                                                 <label htmlFor="item-cat" className={ETIQUETA}>Categoría</label>
                                                 <select id="item-cat" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} className={`${CAMPO} ${borde(false)}`}>
@@ -1401,12 +1418,11 @@
                                             </div>
                                         </div>
                                         <div className="flex justify-end gap-2 mt-4">
-                                            {!ancha && <button type="button" onClick={closeAddItem} className={BTN_SECUNDARIO}>Cancelar</button>}
-                                            <button type="submit" className={`${BTN_PRIMARIO} ${ancha ? 'w-full justify-center' : ''}`}>Guardar ítem</button>
+                                            <button type="button" onClick={closeAddItem} className={BTN_SECUNDARIO}>Cancelar</button>
+                                            <button type="submit" className={BTN_PRIMARIO}>Guardar ítem</button>
                                         </div>
                                     </form>
                                 )}
-                                <div className={ancha ? 'order-1 min-w-0' : ''}>
 
                                 <div className="flex flex-col sm:flex-row gap-3 mb-4">
                                     <div className="relative flex-1 sm:max-w-sm">
@@ -1510,7 +1526,7 @@
                                                             {editing && editing.id === item.id && !angosta ? (
                                                                 <EditorCantidad id={`qty-${item.id}`} label={`Cantidad en bodega de ${item.nombre}`} min="0" value={editing.value} error={editing.error} onChange={(e) => setEditing({ ...editing, value: e.target.value, error: '' })} onSubmit={saveEdit} onCancel={cancelEdit} />
                                                             ) : (
-                                                                <button type="button" data-qty={item.id} onClick={() => setEditing({ id: item.id, value: String(item.cantidad), error: '' })} aria-label={`Ajustar cantidad de ${item.nombre}: ${item.cantidad}`} className="inline-flex items-center gap-1.5 font-mono font-bold text-ink min-h-[2.5rem] px-2 -mr-2 rounded-lg hover:bg-action-soft hover:text-link">
+                                                                <button type="button" data-qty={item.id} data-lock tabIndex={isAdmin ? 0 : -1} onClick={() => setEditing({ id: item.id, value: String(item.cantidad), error: '' })} aria-label={`Ajustar cantidad de ${item.nombre}: ${item.cantidad}`} className="inline-flex items-center gap-1.5 font-mono font-bold text-ink min-h-[2.5rem] px-2 -mr-2 rounded-lg hover:bg-action-soft hover:text-link">
                                                                     {fmt(item.cantidad)}
                                                                     <Icon name="lapiz" className="w-3.5 h-3.5 text-muted" />
                                                                 </button>
@@ -1519,10 +1535,10 @@
                                                         <td className="hidden sm:table-cell px-2 sm:px-4 py-3"><StockBadge cantidad={item.cantidad} /></td>
                                                         <td className="px-2 sm:px-4 py-3 text-right whitespace-nowrap">
                                                             <div className="inline-flex items-center justify-end gap-1">
-                                                                <button type="button" data-edit-item={item.id} onClick={() => setEditingItem({ id: item.id, categoria: item.categoria, nombre: item.nombre, ubicacion: item.ubicacion, errors: {} })} aria-label={`Editar datos de ${item.nombre}`} className={`${BTN} px-2.5 text-muted hover:text-ink hover:bg-canvas max-sm:w-9 max-sm:px-0`}>
+                                                                <button type="button" data-admin data-edit-item={item.id} onClick={() => setEditingItem({ id: item.id, categoria: item.categoria, nombre: item.nombre, ubicacion: item.ubicacion, errors: {} })} aria-label={`Editar datos de ${item.nombre}`} className={`${BTN} px-2.5 text-muted hover:text-ink hover:bg-canvas max-sm:w-9 max-sm:px-0`}>
                                                                     <Icon name="lapiz" className="w-4 h-4" /><span className="hidden lg:inline">Editar</span>
                                                                 </button>
-                                                                <button type="button" onClick={() => handleDeleteItem(item)} aria-label={`Eliminar ${item.nombre}`} data-del={item.id} className={`${BTN_PELIGRO} max-sm:w-9 max-sm:px-0`}><Icon name="basura" className="w-4 h-4" /><span className="hidden sm:inline">Eliminar</span></button>
+                                                                <button type="button" data-admin onClick={() => handleDeleteItem(item)} aria-label={`Eliminar ${item.nombre}`} data-del={item.id} className={`${BTN_PELIGRO} max-sm:w-9 max-sm:px-0`}><Icon name="basura" className="w-4 h-4" /><span className="hidden sm:inline">Eliminar</span></button>
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -1538,7 +1554,7 @@
                                             ) : (
                                                 <tr><td colSpan="6" className="px-4 py-10 text-center text-sm text-muted">
                                                     {inventory.length === 0 ? (
-                                                        <>La bodega está vacía. <button type="button" onClick={() => setShowAddItem(true)} className={ENLACE}>Registra el primer ítem</button></>
+                                                        <>La bodega está vacía. <button type="button" data-admin onClick={() => setShowAddItem(true)} className={ENLACE}>Registra el primer ítem</button></>
                                                     ) : (
                                                         <>Nada coincide con {descripcionFiltro}. {hayFiltros && <button type="button" onClick={() => { setSearchTerm(''); setFilterCategory('Todos'); }} className={ENLACE}>Limpiar búsqueda</button>}</>
                                                     )}
@@ -1547,17 +1563,14 @@
                                         </tbody>
                                     </table>
                                 </div>
-                                <div className="mt-3"><button type="button" onClick={descargarReporte} className={BTN_SECUNDARIO}>Descargar reporte (CSV)</button></div>
-                                <p className="mt-3 text-sm text-muted">Toca una cantidad <Icon name="lapiz" className="inline w-3.5 h-3.5 -mt-0.5" /> para ajustarla. "Bajo" significa {STOCK_BAJO} unidades o menos.</p>
-                                </div>
-                                </div>
+                                <div data-admin className="mt-3"><button type="button" onClick={descargarReporte} className={BTN_SECUNDARIO}>Descargar reporte (CSV)</button></div>
+                                <p data-admin className="mt-3 text-sm text-muted">Toca una cantidad <Icon name="lapiz" className="inline w-3.5 h-3.5 -mt-0.5" /> para ajustarla. "Bajo" significa {STOCK_BAJO} unidades o menos.</p>
                             </section>
                         )}
 
                         {/* ---------- PROYECTOS (CU-19 al CU-37) ---------- */}
                         {activeModule === 'proyectos' && (() => {
                             const visibleProjects = filterProjState === 'Todos' ? projects : projects.filter(p => p.estado === filterProjState);
-                            const proyectoActivo = ancha ? (visibleProjects.find(p => p.id === selectedProjId) || visibleProjects[0] || null) : null;
                             const prom = projects.length ? Math.round(projects.reduce((t, p) => t + avanceDe(p), 0) / projects.length) : 0;
                             const usoListas = lists.map(l => ({ nombre: l.nombre, n: projects.filter(p => p.listId === l.id).length, fin: projects.filter(p => p.listId === l.id && p.estado === 'Finalizado').length })).filter(x => x.n > 0).sort((a, b) => b.fin - a.fin || b.n - a.n);
                             return (
@@ -1568,7 +1581,7 @@
                                             <p className="mt-1 text-sm text-muted">Vincula cada trabajo con su lista de materiales, revisa si puedes arrancar y registra su avance.</p>
                                         </div>
                                         {!showAddProject && (
-                                            <button id="btn-add-project" type="button" onClick={() => setShowAddProject(true)} className={BTN_PRIMARIO}>
+                                            <button id="btn-add-project" type="button" data-admin onClick={() => setShowAddProject(true)} className={BTN_PRIMARIO}>
                                                 <Icon name="mas" className="w-4 h-4" strokeWidth={2.2} /> Nuevo proyecto
                                             </button>
                                         )}
@@ -1609,7 +1622,7 @@
                                         </form>
                                     )}
 
-                                    <details className="mb-4 bg-surface border border-line rounded-2xl p-4">
+                                    <details data-admin className="mb-4 bg-surface border border-line rounded-2xl p-4">
                                         <summary className="text-sm font-bold text-ink cursor-pointer">Estadísticas de proyectos</summary>
                                         <p className="mt-3 text-sm text-ink-soft">{plural(projects.length, 'proyecto', 'proyectos')} · avance promedio <b className="font-mono">{prom}%</b> · {['Pendiente', 'En curso', 'Finalizado'].map(e => `${projects.filter(p => p.estado === e).length} ${e.toLowerCase()}`).join(' · ')}</p>
                                         <h3 className="mt-3 text-sm font-bold text-ink">Más realizados (por lista de materiales)</h3>
@@ -1635,9 +1648,8 @@
                                         </div>
                                     </div>
 
-                                    <div className={proyectoActivo ? 'grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-6 items-start' : ''}>
                                     {visibleProjects.length > 0 ? (
-                                        <ul className={proyectoActivo ? 'grid grid-cols-1 gap-3' : 'grid lg:grid-cols-2 gap-4 items-start'}>
+                                        <ul className="grid lg:grid-cols-2 gap-4 items-start">
                                             {visibleProjects.map(proj => {
                                                 const linkedList = lists.find(l => l.id === proj.listId) || null;
                                                 const rev = linkedList ? revisarLista(linkedList, inventory) : null;
@@ -1649,22 +1661,18 @@
                                                     ? { cls: 'bg-warn-soft text-warn', icon: 'llave' }
                                                     : { cls: 'bg-canvas text-ink-soft border border-line-strong', icon: 'carpeta' };
                                                 return (
-                                                    <li key={proj.id} onClick={proyectoActivo ? () => setSelectedProjId(proj.id) : undefined} className={`bg-surface border rounded-2xl p-4 sm:p-5 ${proyectoActivo?.id === proj.id ? 'border-action ring-1 ring-action' : proyectoActivo ? 'border-line hover:border-line-strong cursor-pointer' : 'border-line'}`}>
+                                                    <li key={proj.id} className="bg-surface border border-line rounded-2xl p-4 sm:p-5">
                                                         <div className="flex flex-wrap items-start justify-between gap-3">
                                                             <div className="min-w-0 flex-1">
                                                                 <div className="flex flex-wrap items-center gap-2">
-                                                                    <h2 className="text-lg font-bold text-ink [overflow-wrap:anywhere]">
-                                                                        {proyectoActivo ? (
-                                                                            <button type="button" onClick={() => setSelectedProjId(proj.id)} aria-pressed={proyectoActivo.id === proj.id} className="text-left hover:text-link">{proj.nombre}</button>
-                                                                        ) : proj.nombre}
-                                                                    </h2>
+                                                                    <h2 className="text-lg font-bold text-ink [overflow-wrap:anywhere]">{proj.nombre}</h2>
                                                                     <Badge cls={stateBadge.cls} icon={stateBadge.icon}>{proj.estado}</Badge>
                                                                 </div>
                                                                 <p className="mt-1 text-sm text-muted">
                                                                     Responsable: <b className="font-semibold text-ink-soft">{proj.responsable}</b> · {proj.nota}
                                                                 </p>
                                                             </div>
-                                                            <button type="button" data-del-proj={proj.id} onClick={() => handleDeleteProject(proj)} aria-label={`Eliminar proyecto ${proj.nombre}`} className={`${BTN_PELIGRO} max-sm:w-10 max-sm:px-0`}>
+                                                            <button type="button" data-admin data-del-proj={proj.id} onClick={() => handleDeleteProject(proj)} aria-label={`Eliminar proyecto ${proj.nombre}`} className={`${BTN_PELIGRO} max-sm:w-10 max-sm:px-0`}>
                                                                 <Icon name="basura" className="w-4 h-4" /><span className="hidden sm:inline">Eliminar</span>
                                                             </button>
                                                         </div>
@@ -1687,13 +1695,13 @@
                                                             <div className="flex flex-wrap items-center justify-between md:justify-end gap-3">
                                                                 <div className="flex items-center gap-2">
                                                                     <span className="text-sm text-muted">Avance:</span>
-                                                                    {!tieneItems && <button type="button" onClick={() => handleStepProjectProgress(proj, -20)} disabled={proj.avance <= 0} aria-label={`Reducir avance de ${proj.nombre}`} className="btn-press w-8 h-8 rounded-lg border border-line-strong bg-surface text-ink font-mono font-bold hover:bg-canvas disabled:opacity-40">−</button>}
+                                                                    {!tieneItems && <button type="button" data-admin onClick={() => handleStepProjectProgress(proj, -20)} disabled={proj.avance <= 0} aria-label={`Reducir avance de ${proj.nombre}`} className="btn-press w-8 h-8 rounded-lg border border-line-strong bg-surface text-ink font-mono font-bold hover:bg-canvas disabled:opacity-40">−</button>}
                                                                     <span className="font-mono font-bold text-sm text-ink min-w-[3.25rem] text-center">{av}%</span>
-                                                                    {!tieneItems && <button type="button" onClick={() => handleStepProjectProgress(proj, 20)} disabled={proj.avance >= 100} aria-label={`Aumentar avance de ${proj.nombre}`} className="btn-press w-8 h-8 rounded-lg border border-line-strong bg-surface text-ink font-mono font-bold hover:bg-canvas disabled:opacity-40">+</button>}
+                                                                    {!tieneItems && <button type="button" data-admin onClick={() => handleStepProjectProgress(proj, 20)} disabled={proj.avance >= 100} aria-label={`Aumentar avance de ${proj.nombre}`} className="btn-press w-8 h-8 rounded-lg border border-line-strong bg-surface text-ink font-mono font-bold hover:bg-canvas disabled:opacity-40">+</button>}
                                                                 </div>
                                                                 <div className="flex items-center gap-1.5">
                                                                     <label htmlFor={`proj-state-${proj.id}`} className="sr-only">Cambiar estado de {proj.nombre}</label>
-                                                                    <select id={`proj-state-${proj.id}`} value={proj.estado} onChange={(e) => handleUpdateProjectState(proj, e.target.value)} className="min-h-[2.25rem] px-2.5 py-1 border border-line-strong rounded-xl text-sm font-semibold bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-link">
+                                                                    <select disabled={!isAdmin} id={`proj-state-${proj.id}`} value={proj.estado} onChange={(e) => handleUpdateProjectState(proj, e.target.value)} className="min-h-[2.25rem] px-2.5 py-1 border border-line-strong rounded-xl text-sm font-semibold bg-surface text-ink focus:outline-none focus:ring-2 focus:ring-link">
                                                                         <option value="Pendiente">Pendiente</option>
                                                                         <option value="En curso">En curso</option>
                                                                         <option value="Finalizado">Finalizado</option>
@@ -1701,7 +1709,7 @@
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    <div className="mt-4 pt-4 border-t border-line flex flex-wrap items-center gap-3">
+                                                    <div data-admin className="mt-4 pt-4 border-t border-line flex flex-wrap items-center gap-3">
                                                             <label htmlFor={`proj-lista-${proj.id}`} className="text-sm font-semibold text-ink">Lista asociada:</label>
                                                             <select id={`proj-lista-${proj.id}`} value={proj.listId ?? ''} onChange={(e) => setListaProyecto(proj, e.target.value)} className="min-h-[2.25rem] px-2 border border-line-strong rounded-xl text-sm bg-surface">
                                                                 <option value="">Sin lista asociada</option>
@@ -1722,24 +1730,22 @@
                                                                 <div className="flex justify-end gap-2"><button type="button" onClick={() => setEditProj(null)} className={BTN_SECUNDARIO}>Cancelar</button><button type="submit" className={BTN_PRIMARIO}>Guardar cambios</button></div>
                                                             </form>
                                                         )}
-                                                        {tieneItems && !proyectoActivo && (
+                                                        {tieneItems && (
                                                             <details className="mt-3">
                                                                 <summary className="text-sm font-semibold text-link cursor-pointer">Verificar materiales ({verificadosDe(proj)}/{linkedList.items.length})</summary>
                                                                 <ul className="mt-2 space-y-1">
                                                                     {linkedList.items.map(it => { const inv = inventory.find(i => i.id === it.id); if (!inv) return null; const ok = (proj.verificados || []).includes(it.id); return (
-                                                                        <li key={it.id}><label className="flex items-center gap-2 min-h-[2.25rem] text-sm text-ink cursor-pointer"><input type="checkbox" checked={ok} onChange={() => toggleVerificado(proj, it.id, inv.nombre)} className="w-4 h-4" />{inv.nombre} <span className="font-mono text-xs text-muted">× {fmt(it.cantidadNecesaria)}</span></label></li>
+                                                                        <li key={it.id}><label className="flex items-center gap-2 min-h-[2.25rem] text-sm text-ink cursor-pointer"><input type="checkbox" checked={ok} disabled={proj.estado !== 'En curso'} title="Solo se verifica en proyectos en curso" onChange={() => toggleVerificado(proj, it.id, inv.nombre)} className="w-4 h-4" />{inv.nombre} <span className="font-mono text-xs text-muted">× {fmt(it.cantidadNecesaria)}</span></label></li>
                                                                     ); })}
                                                                 </ul>
                                                             </details>
                                                         )}
-                                                        {!proyectoActivo && (
-                                                        <details className="mt-2">
+                                                        <details data-admin className="mt-2">
                                                             <summary className="text-sm font-semibold text-link cursor-pointer">Historial de cambios ({(proj.historial || []).length})</summary>
                                                             <ul className="mt-2 space-y-1 text-sm text-ink-soft">
                                                                 {(proj.historial || []).length === 0 ? <li className="text-muted">Todavía no hay cambios registrados.</li> : proj.historial.map((h, i) => <li key={i}><span className="font-mono text-xs text-muted">{h.fecha}</span> · {h.texto}</li>)}
                                                             </ul>
                                                         </details>
-                                                        )}
                                                     </li>
                                                 );
                                             })}
@@ -1751,97 +1757,18 @@
                                             {filterProjState !== 'Todos' ? (
                                                 <button type="button" onClick={() => setFilterProjState('Todos')} className={`${BTN_SECUNDARIO} mt-4`}>Ver todos los proyectos</button>
                                             ) : (
-                                                <button type="button" onClick={() => setShowAddProject(true)} className={`${BTN_PRIMARIO} mt-4`}>Crear el primer proyecto</button>
+                                                <button type="button" data-admin onClick={() => setShowAddProject(true)} className={`${BTN_PRIMARIO} mt-4`}>Crear el primer proyecto</button>
                                             )}
                                         </div>
                                     )}
-                                    {proyectoActivo && (() => {
-                                        const ll = lists.find(l => l.id === proyectoActivo.listId) || null;
-                                        const rv = ll ? revisarLista(ll, inventory) : null;
-                                        const av = avanceDe(proyectoActivo);
-                                        const hist = proyectoActivo.historial || [];
-                                        return (
-                                            <aside aria-label={`Detalle de ${proyectoActivo.nombre}`} className="sticky top-6 p-6 bg-surface border border-line rounded-2xl">
-                                                <p className="text-xs font-bold uppercase tracking-wider text-muted">Proyecto seleccionado</p>
-                                                <h2 className="mt-1 text-xl font-bold text-ink tracking-tight [overflow-wrap:anywhere]">{proyectoActivo.nombre}</h2>
-                                                <p className="mt-1 text-sm text-muted">Responsable: <b className="font-semibold text-ink-soft">{proyectoActivo.responsable}</b>{proyectoActivo.nota ? ` · ${proyectoActivo.nota}` : ''}</p>
-                                                <div className="mt-4">
-                                                    <div className="flex items-center justify-between text-sm">
-                                                        <span className="font-semibold text-ink">Avance</span>
-                                                        <span className="font-mono font-bold text-ink">{av}%</span>
-                                                    </div>
-                                                    <div className="mt-1.5 h-2 rounded-full bg-canvas border border-line overflow-hidden" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={av} aria-label={`Avance de ${proyectoActivo.nombre}`}>
-                                                        <div className="h-full bg-action rounded-full transition-[width] duration-300" style={{ width: `${av}%` }} />
-                                                    </div>
-                                                </div>
-                                                <div className="mt-6 pt-5 border-t border-line">
-                                                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                                                        <h3 className="text-base font-bold text-ink">Verificar materiales {rv && rv.filas.length > 0 && <span className="font-mono text-sm text-muted">({verificadosDe(proyectoActivo)}/{ll.items.length})</span>}</h3>
-                                                        {rv && <ResumenBadge revision={rv} />}
-                                                    </div>
-                                                    {!ll ? (
-                                                        <p className="text-sm text-muted">Este proyecto no tiene una lista de materiales asociada.</p>
-                                                    ) : rv.filas.length === 0 ? (
-                                                        <p className="text-sm text-muted">La lista "{ll.nombre}" todavía no tiene materiales.</p>
-                                                    ) : (
-                                                        <table className="w-full text-left text-sm">
-                                                            <caption className="sr-only">Materiales de {ll.nombre}: marca los que ya verificaste</caption>
-                                                            <thead>
-                                                                <tr className="text-muted border-b border-line">
-                                                                    <th scope="col" className="py-2 pr-2 font-semibold">Material</th>
-                                                                    <th scope="col" className="py-2 px-2 font-semibold text-right">Necesito</th>
-                                                                    <th scope="col" className="py-2 px-2 font-semibold text-right">Hay</th>
-                                                                    <th scope="col" className="py-2 pl-2 font-semibold"><span className="sr-only">Estado</span></th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody className="divide-y divide-line text-ink-soft">
-                                                                {rv.filas.map(f => {
-                                                                    const ok = (proyectoActivo.verificados || []).includes(f.id);
-                                                                    return (
-                                                                        <tr key={f.id}>
-                                                                            <th scope="row" className="py-2 pr-2 font-semibold text-ink [overflow-wrap:anywhere]">
-                                                                                <label className="flex items-center gap-2 min-h-[2.25rem] cursor-pointer">
-                                                                                    <input type="checkbox" checked={ok} onChange={() => toggleVerificado(proyectoActivo, f.id, f.nombre)} className="w-4 h-4 shrink-0" />
-                                                                                    {f.nombre}
-                                                                                </label>
-                                                                            </th>
-                                                                            <td className="py-2 px-2 text-right font-mono">{fmt(f.necesito)}</td>
-                                                                            <td className="py-2 px-2 text-right font-mono">{fmt(f.cantidad)}</td>
-                                                                            <td className="py-2 pl-2 text-right">
-                                                                                {f.falta > 0
-                                                                                    ? <Badge cls="bg-err-soft text-err-strong" icon="alerta">Faltan {fmt(f.falta)}</Badge>
-                                                                                    : <Badge cls="bg-ok-soft text-ok" icon="check">Alcanza</Badge>}
-                                                                            </td>
-                                                                        </tr>
-                                                                    );
-                                                                })}
-                                                            </tbody>
-                                                        </table>
-                                                    )}
-                                                    {ll && (
-                                                        <button type="button" onClick={() => { setActiveModule('listas'); openList(ll.id); }} className={`${ENLACE} mt-3`}>
-                                                            Abrir "{ll.nombre}" para editarla →
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                <div className="mt-6 pt-5 border-t border-line">
-                                                    <h3 className="text-base font-bold text-ink mb-2">Historial de cambios <span className="font-mono text-sm text-muted">({hist.length})</span></h3>
-                                                    <ul className="space-y-1.5 text-sm text-ink-soft max-h-64 overflow-y-auto">
-                                                        {hist.length === 0 ? <li className="text-muted">Todavía no hay cambios registrados.</li> : hist.map((h, i) => <li key={i}><span className="font-mono text-xs text-muted">{h.fecha}</span> · {h.texto}</li>)}
-                                                    </ul>
-                                                </div>
-                                            </aside>
-                                        );
-                                    })()}
-                                    </div>
                                 </section>
                             );
                         })()}
                     </main>
-                    <footer className="max-w-[100rem] w-full mx-auto px-4 sm:px-6 py-5 border-t border-line flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
+                    <footer className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-5 border-t border-line flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
                         <span>¿Hay materiales? · Inventario, listas y proyectos del taller</span>
                         <button type="button" onClick={handleExit} className="font-semibold text-ink-soft hover:text-link underline underline-offset-4">Salir de la aplicación</button>
-                        <button type="button" onClick={handleResetDemo} className="font-semibold text-ink-soft hover:text-link underline underline-offset-4">
+                        <button type="button" data-admin onClick={handleResetDemo} className="font-semibold text-ink-soft hover:text-link underline underline-offset-4">
                             Restaurar datos de demostración
                         </button>
                     </footer>
